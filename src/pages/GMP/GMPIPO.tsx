@@ -15,7 +15,7 @@ export default function GMPIPO() {
 
   useEffect(() => {
     const fetchIpo = async () => {
-      const res = await apiClient.get(`/ipo/${id}`);
+      const res = await apiClient.get(`/ipo/${id}/gmp`);
       setIpo(res.data);
       setTimeout(() => {
         setLoading(false);
