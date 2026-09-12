@@ -20,7 +20,7 @@ interface PaginationContextType {
 }
 
 export const PaginationContext = createContext<PaginationContextType | null>(
-  null
+  null,
 );
 
 export const usePagination = () => useContext(PaginationContext)!;
@@ -58,6 +58,8 @@ export const PaginationProvider = ({
     queryFn: fetchIpos,
     placeholderData: (previousData) => previousData,
     retry: 1,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
