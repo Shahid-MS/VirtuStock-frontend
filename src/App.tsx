@@ -7,6 +7,7 @@ import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 
 import IPO from "./pages/IPO/IPO";
+import OpenIPOs from "./pages/IPO/OpenIPOs";
 import CompareIPO from "./pages/Comparison/CompareIPO";
 import GMPIPO from "./pages/GMP/GMPIPO";
 
@@ -20,7 +21,8 @@ import { Home } from "./pages/Dashboard/Home";
 
 import UserProfile from "./pages/User/Profile/UserProfile";
 import UserDashboard from "./pages/User/Dashboard/UserHome";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./queryClient";
 import { Toaster } from "sonner";
 import AppliedIPO from "./pages/User/Dashboard/AppliedIPO/AppliedIPO";
 import "primereact/resources/themes/lara-light-blue/theme.css";
@@ -35,7 +37,6 @@ import { useAuthInit } from "./Store/authSlice";
 
 export default function App() {
   useAuthInit();
-  const queryClient = new QueryClient();
   return (
     <>
       <Toaster position="top-center" />
@@ -66,6 +67,7 @@ export default function App() {
                     </PaginationProvider>
                   }
                 />
+                <Route path="open" element={<OpenIPOs />} />
                 <Route path=":id" element={<IPO />} />
                 <Route path="gmp/:id" element={<GMPIPO />} />
               </Route>

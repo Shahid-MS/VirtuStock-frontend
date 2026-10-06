@@ -17,9 +17,7 @@ export default function UserProfile() {
       } catch {
         setUser(undefined);
       } finally {
-        setTimeout(() => {
-          setLoading(false);
-        }, 250);
+        setLoading(false);
       }
     };
     fetchUserDetails();

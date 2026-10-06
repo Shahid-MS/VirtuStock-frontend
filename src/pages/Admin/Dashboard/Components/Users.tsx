@@ -34,8 +34,6 @@ interface PaginationState {
 export const Users = () => {
   const [users, setUsers] = useState<UserInterface[]>([]);
   const queryClient = useQueryClient();
-  const sleep = (ms: number) =>
-    new Promise((resolve) => setTimeout(resolve, ms));
   const [pagination, setPagination] = useState<PaginationState>({
     pageNumber: 0,
     pageSize: 5,
@@ -45,7 +43,6 @@ export const Users = () => {
   });
   const fetchUsers = async ({ queryKey }: QueryFunctionContext) => {
     const [, pageNumber, pageSize] = queryKey as [string, number, number];
-    await sleep(200);
     const res = await apiClient.get("/admin/user", {
       params: {
         page: pageNumber,

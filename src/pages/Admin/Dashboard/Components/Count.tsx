@@ -44,9 +44,7 @@ export default function Count() {
           ipoPercentageGrowth: 0,
         });
       } finally {
-        setTimeout(() => {
-          setLoading(false);
-        }, 250);
+        setLoading(false);
       }
     };
     fetchCount();

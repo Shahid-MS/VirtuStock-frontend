@@ -57,8 +57,18 @@ export default function GMPTable({ ipo }: IPOProps) {
             </TableHeader>
 
             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-              {ipo?.gmp.map((g) => (
-                <TableRow key={g.lastUpdated}>
+              {(ipo?.gmp ?? []).length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="px-4 py-6 text-center text-gray-500 text-theme-sm dark:text-gray-400"
+                  >
+                    No GMP history yet.
+                  </TableCell>
+                </TableRow>
+              )}
+              {(ipo?.gmp ?? []).map((g, idx) => (
+                <TableRow key={g.lastUpdated ?? idx}>
                   <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                     {dateFormat(g.gmpDate)}
                   </TableCell>

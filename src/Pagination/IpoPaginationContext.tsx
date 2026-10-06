@@ -1,6 +1,6 @@
 import apiClient from "@/API/ApiClient";
 import { IPOInterface } from "@/Interface/IPO";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import { useQuery, QueryFunctionContext } from "@tanstack/react-query";
 
 interface PaginationState {
@@ -11,9 +11,19 @@ interface PaginationState {
   lastPage: boolean;
 }
 
+interface IpoPage {
+  content?: IPOInterface[];
+  totalPages?: number;
+  totalElements?: number;
+  lastPage?: boolean;
+}
+
 interface PaginationContextType {
   ipos: IPOInterface[];
+  /** True only for the very first load (not when switching pages). */
   loading: boolean;
+  /** True whenever a request is in flight, including page changes. */
+  fetching: boolean;
   error: boolean;
   pagination: PaginationState;
   setPageNumber: (page: number) => void;
@@ -25,18 +35,17 @@ export const PaginationContext = createContext<PaginationContextType | null>(
 
 export const usePagination = () => useContext(PaginationContext)!;
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const PAGE_SIZE = 10;
 
 const fetchIpos = async ({ queryKey }: QueryFunctionContext) => {
   const [, pageNumber, pageSize] = queryKey as [string, number, number];
-  await sleep(200);
   const res = await apiClient.get("/ipo", {
     params: {
       page: pageNumber,
       size: pageSize,
     },
   });
-  return res.data;
+  return res.data as IpoPage;
 };
 
 export const PaginationProvider = ({
@@ -44,17 +53,10 @@ export const PaginationProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [ipos, setIpos] = useState<IPOInterface[]>([]);
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageNumber: 0,
-    pageSize: 10,
-    totalPages: 0,
-    totalElements: 0,
-    lastPage: false,
-  });
+  const [pageNumber, setPageNumber] = useState(0);
 
-  const { data, isError, isFetching } = useQuery({
-    queryKey: ["ipos", pagination.pageNumber, pagination.pageSize],
+  const { data, isError, isLoading, isFetching } = useQuery({
+    queryKey: ["ipos", pageNumber, PAGE_SIZE],
     queryFn: fetchIpos,
     placeholderData: (previousData) => previousData,
     retry: 1,
@@ -62,27 +64,28 @@ export const PaginationProvider = ({
     refetchOnWindowFocus: false,
   });
 
-  useEffect(() => {
-    if (!data) return;
+  const ipos = data?.content ?? [];
+  const totalPages = data?.totalPages ?? 0;
+  const totalElements = data?.totalElements ?? 0;
+  const lastPage = data?.lastPage ?? false;
 
-    setIpos(data.content ?? []);
-    setPagination((prev) => ({
-      ...prev,
-      totalPages: data.totalPages ?? 0,
-      totalElements: data.totalElements ?? 0,
-      lastPage: data.lastPage ?? false,
-    }));
-  }, [data]);
-
-  const setPageNumber = (p: number) => {
-    setPagination((prev) => ({ ...prev, pageNumber: p }));
-  };
+  const pagination = useMemo<PaginationState>(
+    () => ({
+      pageNumber,
+      pageSize: PAGE_SIZE,
+      totalPages,
+      totalElements,
+      lastPage,
+    }),
+    [pageNumber, totalPages, totalElements, lastPage],
+  );
 
   return (
     <PaginationContext.Provider
       value={{
         ipos,
-        loading: isFetching,
+        loading: isLoading,
+        fetching: isFetching,
         error: isError,
         pagination,
         setPageNumber,

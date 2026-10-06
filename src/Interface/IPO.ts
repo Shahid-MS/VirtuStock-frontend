@@ -1,5 +1,5 @@
 export interface GMP {
-  gmp: string;
+  gmp: number;
   gmpDate: string;
   lastUpdated?: string;
 }
@@ -36,6 +36,8 @@ export interface IPOInterface {
   listingReturn: number;
   listingReturnPercent: number;
   subscriptionLastUpdated: string;
+  /** Optional: direct application link, if the backend provides one. */
+  applicationUrl?: string;
 }
 
 export interface IPOsProps {

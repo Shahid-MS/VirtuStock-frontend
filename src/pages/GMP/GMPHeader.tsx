@@ -2,9 +2,11 @@ import { Link } from "react-router";
 
 import { INRFormat } from "../../Helper/INRHelper";
 import { dateandTimeFormat } from "../../Helper/dateHelper";
+import { latestGmp } from "../../Helper/ipoHelper";
 import { IPOProps } from "../../Interface/IPO";
 
 export default function GMPHeader({ ipo }: IPOProps) {
+  const latest = latestGmp(ipo?.gmp);
   return (
     <>
       <div className="p-3 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
@@ -36,10 +38,12 @@ export default function GMPHeader({ ipo }: IPOProps) {
             <div className="lg:flex items-center order-3 gap-2 grow justify-end">
               <div>
                 <p className="text-sm text-center lg:text-2xl font-medium text-gray-800 dark:text-white/90">
-                  GMP: {INRFormat(ipo?.gmp[0].gmp)}
+                  GMP: {latest ? INRFormat(latest.gmp) : "—"}
                 </p>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Last Updated : {dateandTimeFormat(ipo?.gmp[0].lastUpdated)}
+                  {latest
+                    ? `Last Updated : ${dateandTimeFormat(latest.lastUpdated)}`
+                    : "GMP hasn't been published yet"}
                 </p>
               </div>
             </div>

@@ -1,3 +1,4 @@
+import { queryClient } from "@/queryClient";
 import NotFound from "../../OtherPage/NotFound";
 import { useParams } from "react-router";
 import { useEffect, useState } from "react";
@@ -46,9 +47,7 @@ export default function UpdateIPO() {
       } catch {
         setIpo(undefined);
       } finally {
-        setTimeout(() => {
-          setLoading(false);
-        }, 250);
+        setLoading(false);
       }
     };
     fetchIpo();
@@ -75,6 +74,10 @@ export default function UpdateIPO() {
     try {
       const res = await apiClient.put(`/admin/ipo/${ipo?.id}`, changedData);
       toast.success(res.data.message);
+      // Public pages cache IPO data; make sure they pick up the change.
+      queryClient.invalidateQueries({ queryKey: ["ipo"] });
+      queryClient.invalidateQueries({ queryKey: ["ipo-gmp"] });
+      queryClient.invalidateQueries({ queryKey: ["ipos"] });
     } catch (error) {
       console.log(error);
       if (error instanceof AxiosError) {
@@ -98,7 +101,7 @@ export default function UpdateIPO() {
   return (
     <>
       <div className="space-y-6">
-        <IPOHeader ipo={ipo} />
+        <IPOHeader ipo={ipo} showActions={false} />
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <div className="space-y-6">

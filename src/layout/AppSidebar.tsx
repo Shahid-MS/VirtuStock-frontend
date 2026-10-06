@@ -1,345 +1,80 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-
-// Assume these icons are imported from an icon library
+import { useSelector } from "react-redux";
 import {
+  BoltIcon,
   ChatIcon,
-  // BoxCubeIcon,
-  // CalenderIcon,
-  ChevronDownIcon,
   GridIcon,
   GroupIcon,
   HorizontaLDots,
   ListIcon,
-  TableIcon,
+  PencilIcon,
+  PieChartIcon,
   UserCircleIcon,
-  // PageIcon,
-  // PieChartIcon,
-  // PlugInIcon,
-  // TableIcon,
-  // UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
-// import SidebarWidget from "./SidebarWidget";
-import { IPOInterface } from "../Interface/IPO";
-import apiClient from "../API/ApiClient";
-import { useSelector } from "react-redux";
 import { RootState } from "@/Store";
-import { jwtDecode } from "jwt-decode";
 import Search from "./Search";
 
-// import SidebarWidget from "./SidebarWidget";
+type NavItem = {
+  name: string;
+  icon: React.ReactNode;
+  path: string;
+};
+
+type NavSection = {
+  title: string;
+  items: NavItem[];
+};
+
+const MARKET: NavSection = {
+  title: "Market",
+  items: [
+    { name: "Overview", icon: <GridIcon />, path: "/" },
+    { name: "Open IPOs", icon: <BoltIcon />, path: "/ipo/open" },
+    { name: "Compare IPOs", icon: <ListIcon />, path: "/ipo/compare" },
+  ],
+};
+
+const USER: NavSection = {
+  title: "My IPOs",
+  items: [
+    { name: "Dashboard", icon: <PieChartIcon />, path: "/user" },
+    { name: "Profile", icon: <UserCircleIcon />, path: "/user/profile" },
+  ],
+};
+
+const ADMIN: NavSection = {
+  title: "Admin",
+  items: [
+    { name: "Dashboard", icon: <GridIcon />, path: "/admin" },
+    { name: "Update IPO", icon: <PencilIcon />, path: "/admin/ipo" },
+  ],
+};
+
+const HELP: NavSection = {
+  title: "Help",
+  items: [
+    { name: "About Us", icon: <GroupIcon />, path: "/about-us" },
+    { name: "Support", icon: <ChatIcon />, path: "/support" },
+  ],
+};
 
 const AppSidebar: React.FC = () => {
-  const [ipos, setIpos] = useState<IPOInterface[]>([]);
-  const { token } = useSelector((state: RootState) => state.auth);
-
-  let roles: string[] = [];
-  if (token) {
-    const decoded = jwtDecode<{ roles: string[] }>(token);
-    roles = decoded.roles;
-  }
-
-  useEffect(() => {
-    const fetchIpos = async () => {
-      const res = await apiClient.get("/ipo?status=open");
-      setIpos(res.data);
-    };
-    fetchIpos();
-  }, []);
-  type NavItem = {
-    name: string;
-    icon: React.ReactNode;
-    path?: string;
-    subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
-  };
-
-  const navItems: NavItem[] = [
-    {
-      icon: <TableIcon />,
-      name: "Open IPO",
-      subItems: ipos.map((ipo) => ({
-        name: ipo.name,
-        path: `/ipo/${ipo.id}`,
-        pro: false,
-      })),
-    },
-
-    {
-      name: "Comparison",
-      icon: <ListIcon />,
-      path: "/ipo/compare",
-    },
-  ];
-
-  const othersItems: NavItem[] = [
-    {
-      icon: <GroupIcon />,
-      name: "About Us",
-      path: "/about-us",
-    },
-
-    {
-      icon: <ChatIcon />,
-      name: "Support",
-      path: "/support",
-    },
-    // {
-    //   icon: <UserCircleIcon />,
-    //   name: "User Profile",
-    //   path: "/profile",
-    // },
-    // {
-    //   icon: <PieChartIcon />,
-    //   name: "Charts",
-    //   subItems: [
-    //     { name: "Line Chart", path: "/line-chart", pro: false },
-    //     { name: "Bar Chart", path: "/bar-chart", pro: false },
-    //   ],
-    // },
-    // {
-    //   icon: <BoxCubeIcon />,
-    //   name: "UI Elements",
-    //   subItems: [
-    //     { name: "Alerts", path: "/alerts", pro: false },
-    //     { name: "Avatar", path: "/avatars", pro: false },
-    //     { name: "Badge", path: "/badge", pro: false },
-    //     { name: "Buttons", path: "/buttons", pro: false },
-    //     { name: "Images", path: "/images", pro: false },
-    //     { name: "Videos", path: "/videos", pro: false },
-    //   ],
-    // },
-    // {
-    //   icon: <PlugInIcon />,
-    //   name: "Authentication",
-    //   subItems: [
-    //     { name: "Sign In", path: "/signin", pro: false },
-    //     { name: "Sign Up", path: "/signup", pro: false },
-    //   ],
-    // },
-  ];
-
-  const Admin: NavItem[] = [
-    {
-      icon: <GridIcon />,
-      name: "Dashboard",
-      path: "/admin",
-    },
-    {
-      icon: <UserCircleIcon />,
-      name: "Update IPO",
-      path: "/admin/ipo",
-    },
-  ];
-
-  const User: NavItem[] = [
-    {
-      icon: <GridIcon />,
-      name: "Dashboard",
-      path: "/user",
-    },
-    {
-      icon: <UserCircleIcon />,
-      name: "Profile",
-      path: "/user/profile",
-    },
-  ];
-
+  const roles = useSelector((state: RootState) => state.auth.roles);
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
 
-  const [openSubmenu, setOpenSubmenu] = useState<{
-    type: "main" | "others" | "admin" | "user";
-    index: number;
-  } | null>(null);
-  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
-    {}
-  );
-  const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const showLabels = isExpanded || isHovered || isMobileOpen;
+  const collapsed = !isExpanded && !isHovered;
 
-  // const isActive = (path: string) => location.pathname === path;
-  const isActive = useCallback(
-    (path: string) => location.pathname === path,
-    [location.pathname]
-  );
+  const sections: NavSection[] = [
+    MARKET,
+    ...(roles.includes("ROLE_USER") ? [USER] : []),
+    ...(roles.includes("ROLE_ADMIN") ? [ADMIN] : []),
+    HELP,
+  ];
 
-  useEffect(() => {
-    let submenuMatched = false;
-    ["main", "others", "admin", "user"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
-      items.forEach((nav, index) => {
-        if (nav.subItems) {
-          nav.subItems.forEach((subItem) => {
-            if (isActive(subItem.path)) {
-              setOpenSubmenu({
-                type: menuType as "main" | "others" | "admin" | "user",
-                index,
-              });
-              submenuMatched = true;
-            }
-          });
-        }
-      });
-    });
-
-    if (!submenuMatched) {
-      setOpenSubmenu(null);
-    }
-  }, [location, isActive]);
-
-  useEffect(() => {
-    if (openSubmenu !== null) {
-      const key = `${openSubmenu.type}-${openSubmenu.index}`;
-      if (subMenuRefs.current[key]) {
-        setSubMenuHeight((prevHeights) => ({
-          ...prevHeights,
-          [key]: subMenuRefs.current[key]?.scrollHeight || 0,
-        }));
-      }
-    }
-  }, [openSubmenu]);
-
-  const handleSubmenuToggle = (
-    index: number,
-    menuType: "main" | "others" | "admin" | "user"
-  ) => {
-    setOpenSubmenu((prevOpenSubmenu) => {
-      if (
-        prevOpenSubmenu &&
-        prevOpenSubmenu.type === menuType &&
-        prevOpenSubmenu.index === index
-      ) {
-        return null;
-      }
-      return { type: menuType, index };
-    });
-  };
-
-  const renderMenuItems = (
-    items: NavItem[],
-    menuType: "main" | "others" | "admin" | "user"
-  ) => (
-    <ul className="flex flex-col gap-4">
-      {items.map((nav, index) => (
-        <li key={nav.name}>
-          {nav.subItems ? (
-            <button
-              onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`menu-item group ${
-                openSubmenu?.type === menuType && openSubmenu?.index === index
-                  ? "menu-item-active"
-                  : "menu-item-inactive"
-              } cursor-pointer ${
-                !isExpanded && !isHovered
-                  ? "lg:justify-center"
-                  : "lg:justify-start"
-              }`}
-            >
-              <span
-                className={`menu-item-icon-size  ${
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? "menu-item-icon-active"
-                    : "menu-item-icon-inactive"
-                }`}
-              >
-                {nav.icon}
-              </span>
-              {(isExpanded || isHovered || isMobileOpen) && (
-                <span className="menu-item-text">{nav.name}</span>
-              )}
-              {(isExpanded || isHovered || isMobileOpen) && (
-                <ChevronDownIcon
-                  className={`ml-auto w-5 h-5 transition-transform duration-200 ${
-                    openSubmenu?.type === menuType &&
-                    openSubmenu?.index === index
-                      ? "rotate-180 text-brand-500"
-                      : ""
-                  }`}
-                />
-              )}
-            </button>
-          ) : (
-            nav.path && (
-              <Link
-                to={nav.path}
-                className={`menu-item group ${
-                  isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
-                }`}
-              >
-                <span
-                  className={`menu-item-icon-size ${
-                    isActive(nav.path)
-                      ? "menu-item-icon-active"
-                      : "menu-item-icon-inactive"
-                  }`}
-                >
-                  {nav.icon}
-                </span>
-                {(isExpanded || isHovered || isMobileOpen) && (
-                  <span className="menu-item-text">{nav.name}</span>
-                )}
-              </Link>
-            )
-          )}
-          {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
-            <div
-              ref={(el) => {
-                subMenuRefs.current[`${menuType}-${index}`] = el;
-              }}
-              className="overflow-hidden transition-all duration-300"
-              style={{
-                height:
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? `${subMenuHeight[`${menuType}-${index}`]}px`
-                    : "0px",
-              }}
-            >
-              <ul className="mt-2 space-y-1 ml-9">
-                {nav.subItems.map((subItem) => (
-                  <li key={subItem.name}>
-                    <Link
-                      to={subItem.path}
-                      className={`menu-dropdown-item ${
-                        isActive(subItem.path)
-                          ? "menu-dropdown-item-active"
-                          : "menu-dropdown-item-inactive"
-                      }`}
-                    >
-                      {subItem.name}
-                      <span className="flex items-center gap-1 ml-auto">
-                        {subItem.new && (
-                          <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
-                          >
-                            new
-                          </span>
-                        )}
-                        {subItem.pro && (
-                          <span
-                            className={`ml-auto ${
-                              isActive(subItem.path)
-                                ? "menu-dropdown-badge-active"
-                                : "menu-dropdown-badge-inactive"
-                            } menu-dropdown-badge`}
-                          >
-                            pro
-                          </span>
-                        )}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
+  const isActive = (path: string) => location.pathname === path;
 
   return (
     <aside
@@ -358,23 +93,23 @@ const AppSidebar: React.FC = () => {
     >
       <div
         className={`py-5 lg:py-8 flex ${
-          !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+          collapsed ? "lg:justify-center" : "justify-start"
         }`}
       >
         <Link className="hidden lg:block" to="/">
-          {isExpanded || isHovered || isMobileOpen ? (
+          {showLabels ? (
             <>
               <img
                 className="dark:hidden"
                 src="/images/logo/logo-name.png"
-                alt="Logo"
+                alt="VirtuStock"
                 width={200}
                 height={50}
               />
               <img
                 className="hidden dark:block"
                 src="/images/logo/logo-name-dark.png"
-                alt="Logo"
+                alt="VirtuStock"
                 width={200}
                 height={50}
               />
@@ -382,7 +117,7 @@ const AppSidebar: React.FC = () => {
           ) : (
             <img
               src="/images/logo/logo-icon.png"
-              alt="Logo"
+              alt="VirtuStock"
               width={25}
               height={30}
             />
@@ -393,83 +128,54 @@ const AppSidebar: React.FC = () => {
           <Search />
         </div>
       </div>
+
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
-        <nav className="mb-6">
-          <div className="flex flex-col gap-4">
-            <div>
+        <nav className="mb-6 flex flex-col gap-6" aria-label="Main navigation">
+          {sections.map((section) => (
+            <div key={section.title}>
               <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
+                className={`mb-3 flex text-xs uppercase leading-[20px] text-gray-400 ${
+                  collapsed ? "lg:justify-center" : "justify-start"
                 }`}
               >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Menu"
+                {showLabels ? (
+                  section.title
                 ) : (
                   <HorizontaLDots className="size-6" />
                 )}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              <ul className="flex flex-col gap-1.5">
+                {section.items.map((item) => (
+                  <li key={item.path}>
+                    <Link
+                      to={item.path}
+                      title={item.name}
+                      aria-current={isActive(item.path) ? "page" : undefined}
+                      className={`menu-item group ${
+                        isActive(item.path)
+                          ? "menu-item-active"
+                          : "menu-item-inactive"
+                      } ${collapsed ? "lg:justify-center" : "lg:justify-start"}`}
+                    >
+                      <span
+                        className={`menu-item-icon-size ${
+                          isActive(item.path)
+                            ? "menu-item-icon-active"
+                            : "menu-item-icon-inactive"
+                        }`}
+                      >
+                        {item.icon}
+                      </span>
+                      {showLabels && (
+                        <span className="menu-item-text">{item.name}</span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
-
-            {roles.includes("ROLE_ADMIN") && (
-              <div className="">
-                <h2
-                  className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                    !isExpanded && !isHovered
-                      ? "lg:justify-center"
-                      : "justify-start"
-                  }`}
-                >
-                  {isExpanded || isHovered || isMobileOpen ? (
-                    "Admin"
-                  ) : (
-                    <HorizontaLDots />
-                  )}
-                </h2>
-                {renderMenuItems(Admin, "admin")}
-              </div>
-            )}
-
-            {roles.includes("ROLE_USER") && (
-              <div className="">
-                <h2
-                  className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                    !isExpanded && !isHovered
-                      ? "lg:justify-center"
-                      : "justify-start"
-                  }`}
-                >
-                  {isExpanded || isHovered || isMobileOpen ? (
-                    "user"
-                  ) : (
-                    <HorizontaLDots />
-                  )}
-                </h2>
-                {renderMenuItems(User, "user")}
-              </div>
-            )}
-
-            <div className="">
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Others"
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2>
-              {renderMenuItems(othersItems, "others")}
-            </div>
-          </div>
+          ))}
         </nav>
-        {/* {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null} */}
       </div>
     </aside>
   );
