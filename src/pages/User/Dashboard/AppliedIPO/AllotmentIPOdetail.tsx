@@ -1,6 +1,4 @@
 import apiClient from "@/API/ApiClient";
-import Input from "@/components/form/input/InputField";
-import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { dateFormat } from "@/Helper/dateHelper";
@@ -10,6 +8,18 @@ import { AppliedIPOInterface } from "@/Interface/IPO";
 import { AxiosError } from "axios";
 import { Dispatch, SetStateAction, useState } from "react";
 import { toast } from "sonner";
+import {
+  EditButton,
+  LotStepper,
+  PanelHeader,
+  Spinner,
+  Tile,
+  inputClass,
+  money,
+  percent,
+  signTone,
+  useCountUp,
+} from "./AppliedIPOShared";
 
 interface AppliedIPODetailsInterface {
   appliedIpo: AppliedIPOInterface;
@@ -19,72 +29,139 @@ type UpdateAllotedIpoRequest = {
   lot?: number;
   sellPrice?: number | null;
 };
+
+/** Headline number: total return, counted up, green or red. */
+function TotalReturn({ total, hint }: { total: number; hint: string }) {
+  const shown = useCountUp(Math.abs(total));
+  const gain = total >= 0;
+
+  return (
+    <div
+      className={`col-span-2 flex items-center gap-4 rounded-2xl border p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-theme-sm motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
+        gain
+          ? "border-success-200 bg-success-50 dark:border-success-500/30 dark:bg-success-500/10"
+          : "border-error-200 bg-error-50 dark:border-error-500/30 dark:bg-error-500/10"
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+          gain
+            ? "bg-success-500/15 text-success-600 dark:text-success-400"
+            : "bg-error-500/15 text-error-600 dark:text-error-400"
+        }`}
+      >
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          {gain ? <path d="M7 17 17 7M9 7h8v8" /> : <path d="M7 7l10 10M17 9v8H9" />}
+        </svg>
+      </span>
+
+      <div className="min-w-0">
+        <p className="text-xs text-gray-600 dark:text-gray-300">Total return</p>
+        <p
+          className={`text-2xl font-semibold tabular-nums ${
+            gain
+              ? "text-success-700 dark:text-success-400"
+              : "text-error-700 dark:text-error-400"
+          }`}
+        >
+          {gain ? "+" : "−"}
+          {INRFormat(shown)}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{hint}</p>
+      </div>
+    </div>
+  );
+}
+
 const AllotmentIPOdetail = ({
   appliedIpo,
   setAppliedIpo,
 }: AppliedIPODetailsInterface) => {
   const { isOpen, openModal, closeModal } = useModal();
   const [loading, setLoading] = useState(false);
-  const [lot, setLot] = useState<string>(
-    String(appliedIpo.allotedIpo.allotedLot)
-  );
+
+  const alloted = appliedIpo.allotedIpo;
+  const currentSell: number | null = alloted.sellPrice ?? null;
+  const isListed = Date.now() >= new Date(appliedIpo.ipo.listingDate).getTime();
+
+  const [lot, setLot] = useState<string>(String(alloted.allotedLot));
+  const [notSold, setNotSold] = useState(currentSell === null);
   const [sellPrice, setSellPrice] = useState<string>(
-    String(
-      appliedIpo.allotedIpo.sellPrice === null
-        ? "N/A"
-        : appliedIpo.allotedIpo.sellPrice
-    )
+    currentSell === null ? "" : String(currentSell)
   );
+
+  /* ---- validation (inline, instead of toasts) ---- */
+  const lotNumber = Number(lot);
+  const lotError =
+    lot === "" || !Number.isInteger(lotNumber) || lotNumber < 1
+      ? "Enter a valid number of lots (1 or more)"
+      : lotNumber > appliedIpo.appliedLot
+      ? `Can't be more than the ${appliedIpo.appliedLot} lot(s) you applied for`
+      : undefined;
+
+  const sellNumber = Number(sellPrice);
+  const sellError =
+    isListed && !notSold && (sellPrice === "" || !Number.isFinite(sellNumber) || sellNumber < 0)
+      ? "Enter a valid sell price, or switch on \"Not sold yet\""
+      : undefined;
+
+  const nextSell: number | null = !isListed
+    ? currentSell
+    : notSold
+    ? null
+    : sellNumber;
+  const lotChanged = !lotError && lotNumber !== alloted.allotedLot;
+  const sellChanged = isListed && !sellError && nextSell !== currentSell;
+  const canSave = !lotError && !sellError && (lotChanged || sellChanged) && !loading;
+
+  // Always open the editor on the latest saved values.
+  const handleOpen = () => {
+    setLot(String(alloted.allotedLot));
+    setNotSold(currentSell === null);
+    setSellPrice(currentSell === null ? "" : String(currentSell));
+    openModal();
+  };
 
   const handleSave = async () => {
-    if (!lot || isNaN(Number(lot)) || Number(lot) < 1) {
-      toast.error("Please enter a valid lot number");
-      return;
-    }
-    if (Number(lot) > appliedIpo.appliedLot) {
-      toast.error("Alloted lot can't  be greater than applied lot");
-      return;
-    }
-
-    if (sellPrice !== "N/A" && (!sellPrice || isNaN(Number(sellPrice)))) {
-      toast.error("Please enter a valid sellPrice or N/A if not sold yet");
-      return;
-    }
-
-    const lotChanged = Number(lot) !== appliedIpo.allotedIpo.allotedLot;
-    const sellPriceChanged =
-      Number(sellPrice) !== appliedIpo.allotedIpo.sellPrice;
-
-    if (!lotChanged && !sellPriceChanged) {
-      toast.error("No changes made.");
-      return;
-    }
+    if (!canSave) return;
 
     const req: UpdateAllotedIpoRequest = {};
     if (lotChanged) {
-      req.lot = Number(lot);
+      req.lot = lotNumber;
+    }
+    if (sellChanged) {
+      req.sellPrice = nextSell;
     }
 
-    if (sellPriceChanged) {
-      req.sellPrice = sellPrice == "N/A" ? null : Number(sellPrice);
-    }
     setLoading(true);
     try {
       const res = await apiClient.patch(
-        `user/alloted-ipo/${appliedIpo.allotedIpo.id}`,
+        `user/alloted-ipo/${alloted.id}`,
         req
       );
       toast.success(res.data.message);
+      // The applied lot isn't touched here: only the allotted details changed.
       setAppliedIpo((prev) => {
         if (!prev) return prev;
 
         return {
           ...prev,
-          appliedLot: Number(lot),
           allotedIpo: res.data.alloted,
         };
       });
+      closeModal();
     } catch (error) {
+      // Stay open so the change can be corrected and retried.
       if (error instanceof AxiosError) {
         toast.error(error.response?.data.message);
       } else if (error instanceof Error) {
@@ -94,176 +171,203 @@ const AllotmentIPOdetail = ({
       }
     } finally {
       setLoading(false);
-      closeModal();
     }
   };
 
+  const totalReturn =
+    alloted.netReturn * alloted.allotedLot * appliedIpo.ipo.minQty;
+
   return (
-    <>
-      <div className="order-1">
-        <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-          Alloted Date
-        </p>
-        <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-          {dateFormat(appliedIpo.allotedIpo.allotedDate)}
-        </p>
-      </div>
+    <div>
+      <PanelHeader
+        title="Allotment & returns"
+        subtitle="What you got and how it's doing"
+        action={<EditButton onClick={handleOpen} />}
+      />
 
-      <div className="order-1">
-        <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-          Alloted Lot
-        </p>
-        <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-          {appliedIpo.allotedIpo.allotedLot}
-        </p>
-      </div>
-      <div className="order-1 ">
-        <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-          Price Range
-        </p>
-        <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-          {INRFormat(appliedIpo.ipo.minPrice)} -
-          {INRFormat(appliedIpo.ipo.maxPrice)}
-        </p>
-      </div>
-      {Date.now() >= new Date(appliedIpo.ipo.listingDate).getTime() && (
-        <>
-          <div className="order-2">
-            <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-              Listed Price
-            </p>
-            <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-              {INRFormat(appliedIpo.ipo.listedPrice)}
-            </p>
-          </div>
-          <div className="order-2">
-            <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-              Listing Return
-            </p>
-            <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-              {INRFormat(appliedIpo.ipo.listingReturn)}
-            </p>
-          </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Tile label="Allotted date" value={dateFormat(alloted.allotedDate)} />
+        <Tile
+          label="Allotted lot"
+          value={alloted.allotedLot}
+          sub={`${alloted.allotedLot * appliedIpo.ipo.minQty} shares`}
+        />
+        <Tile
+          label="Price range"
+          value={`${INRFormat(appliedIpo.ipo.minPrice)} – ${INRFormat(
+            appliedIpo.ipo.maxPrice
+          )}`}
+          className="col-span-2 sm:col-span-1"
+        />
 
-          <div className="order-2 lg:col-span-2">
-            <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-              Listing Return %
-            </p>
-            <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-              {appliedIpo.ipo.listingReturnPercent} %
-            </p>
-          </div>
-          <div className="order-2">
-            <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-              Sell Price
-            </p>
-            <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-              {appliedIpo.allotedIpo.sellPrice !== null
-                ? appliedIpo.allotedIpo.sellPrice
-                : "Yet Not sold"}
-            </p>
-          </div>
-          <div className="order-2">
-            <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-              Return
-            </p>
-            <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-              {INRFormat(appliedIpo.allotedIpo.netReturn)}
-            </p>
-          </div>
-
-          <div className="order-2 lg:col-span-2">
-            <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-              Return %
-            </p>
-            <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-              {appliedIpo.allotedIpo.netReturnPercent} %
-            </p>
-          </div>
-
-          <div className="order-2">
-            <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-              Total Return
-            </p>
-            <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-              {INRFormat(
-                appliedIpo.allotedIpo.netReturn *
-                  appliedIpo.allotedIpo.allotedLot *
-                  appliedIpo.ipo.minQty
-              )}
-            </p>
-          </div>
-        </>
-      )}
-
-      <div className="flex flex-col items-center gap-3 col-span-2 lg:col-span-1 mb-2 order-last lg:order-1">
-        <button
-          onClick={openModal}
-          className="flex w-1/2 sm:w-1/4 items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
-        >
-          <svg
-            className="fill-current"
-            width="18"
-            height="18"
-            viewBox="0 0 18 18"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              fillRule="evenodd"
-              clipRule="evenodd"
-              d="M15.0911 2.78206C14.2125 1.90338 12.7878 1.90338 11.9092 2.78206L4.57524 10.116C4.26682 10.4244 4.0547 10.8158 3.96468 11.2426L3.31231 14.3352C3.25997 14.5833 3.33653 14.841 3.51583 15.0203C3.69512 15.1996 3.95286 15.2761 4.20096 15.2238L7.29355 14.5714C7.72031 14.4814 8.11172 14.2693 8.42013 13.9609L15.7541 6.62695C16.6327 5.74827 16.6327 4.32365 15.7541 3.44497L15.0911 2.78206ZM12.9698 3.84272C13.2627 3.54982 13.7376 3.54982 14.0305 3.84272L14.6934 4.50563C14.9863 4.79852 14.9863 5.2734 14.6934 5.56629L14.044 6.21573L12.3204 4.49215L12.9698 3.84272ZM11.2597 5.55281L5.6359 11.1766C5.53309 11.2794 5.46238 11.4099 5.43238 11.5522L5.01758 13.5185L6.98394 13.1037C7.1262 13.0737 7.25666 13.003 7.35947 12.9002L12.9833 7.27639L11.2597 5.55281Z"
-              fill=""
+        {isListed && (
+          <>
+            <Tile
+              label="Listed price"
+              value={money(appliedIpo.ipo.listedPrice)}
+              className="col-span-2 sm:col-span-1"
             />
-          </svg>
-          Edit
-        </button>
-        <Modal isOpen={isOpen} onClose={closeModal} showCloseButton={false}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg dark:bg-gray-900">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-                Edit Alloted IPO
-              </h3>
+            <Tile
+              label="Listing return"
+              value={money(appliedIpo.ipo.listingReturn)}
+              sub={percent(appliedIpo.ipo.listingReturnPercent)}
+              tone={signTone(appliedIpo.ipo.listingReturn)}
+            />
+            <Tile
+              label="Sell price"
+              value={currentSell !== null ? money(currentSell) : "Not sold yet"}
+              tone={
+                currentSell === null
+                  ? "text-gray-500 dark:text-gray-400"
+                  : undefined
+              }
+            />
+            <Tile
+              label="Return"
+              value={money(alloted.netReturn)}
+              sub={percent(alloted.netReturnPercent)}
+              tone={signTone(alloted.netReturn)}
+              className="col-span-2 sm:col-span-1"
+            />
+            <TotalReturn
+              total={totalReturn}
+              hint="Return × allotted lots × lot size"
+            />
+          </>
+        )}
+      </div>
 
-              <form className="flex flex-col gap-5">
+      <Modal isOpen={isOpen} onClose={closeModal} showCloseButton={false}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-5 shadow-lg dark:bg-gray-900 sm:p-6">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+              Edit allotted IPO
+            </h3>
+            <p className="mb-5 text-sm text-gray-500 dark:text-gray-400">
+              {appliedIpo.ipo.name}
+            </p>
+
+            <form
+              className="flex flex-col gap-5"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSave();
+              }}
+            >
+              <div>
+                <p className="mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-400">
+                  Lots allotted
+                </p>
+                <LotStepper
+                  value={lot}
+                  onChange={setLot}
+                  max={appliedIpo.appliedLot}
+                  error={lotError}
+                />
+                {!lotError && (
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    {lotNumber * appliedIpo.ipo.minQty} shares · you applied for{" "}
+                    {appliedIpo.appliedLot} lot(s)
+                  </p>
+                )}
+              </div>
+
+              {isListed && (
                 <div>
-                  <Label>Enter Lot</Label>
-                  <Input
-                    type="text"
-                    placeholder="number of lots"
-                    value={lot}
-                    required
-                    onChange={(e) => setLot(e.target.value)}
-                  />
-                </div>
-                {Date.now() >=
-                  new Date(appliedIpo.ipo.listingDate).getTime() && (
-                  <div>
-                    <Label>Sell Price</Label>
-                    <Input
+                  <div className="mb-1.5 flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-400">
+                      Sell price
+                    </p>
+                    <label className="flex cursor-pointer items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                      Not sold yet
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={notSold}
+                        onClick={() => setNotSold((v) => !v)}
+                        className={`relative h-5 w-9 rounded-full transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 motion-reduce:transition-none ${
+                          notSold
+                            ? "bg-brand-500"
+                            : "bg-gray-300 dark:bg-gray-700"
+                        }`}
+                      >
+                        <span
+                          className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform motion-reduce:transition-none ${
+                            notSold ? "translate-x-4" : ""
+                          }`}
+                        />
+                      </button>
+                    </label>
+                  </div>
+
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                      ₹
+                    </span>
+                    <input
                       type="text"
-                      placeholder="Price"
-                      value={sellPrice}
-                      required
-                      onChange={(e) => setSellPrice(e.target.value)}
+                      inputMode="decimal"
+                      aria-label="Sell price"
+                      aria-invalid={!!sellError}
+                      placeholder={notSold ? "Not sold yet" : "Price per share"}
+                      disabled={notSold}
+                      value={notSold ? "" : sellPrice}
+                      onChange={(e) =>
+                        setSellPrice(e.target.value.replace(/[^0-9.]/g, ""))
+                      }
+                      className={`${inputClass} pl-8 ${
+                        sellError ? "border-error-500 focus:border-error-300" : ""
+                      }`}
                     />
                   </div>
-                )}
 
-                <div className="flex items-center justify-end gap-3">
-                  <Button size="sm" variant="outline" onClick={closeModal}>
-                    Cancel
-                  </Button>
-                  <Button size="sm" onClick={handleSave}>
-                    {loading ? "Saving..." : "Save"}
-                  </Button>
+                  {sellError && (
+                    <p role="alert" className="mt-1.5 text-xs text-error-500">
+                      {sellError}
+                    </p>
+                  )}
+
+                  {!notSold &&
+                    Number.isFinite(appliedIpo.ipo.listedPrice) &&
+                    appliedIpo.ipo.listedPrice > 0 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSellPrice(String(appliedIpo.ipo.listedPrice))
+                        }
+                        className="mt-2 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 transition hover:bg-brand-50 hover:text-brand-600 focus-visible:outline-2 focus-visible:outline-brand-500 active:scale-95 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-brand-500/10 dark:hover:text-brand-400"
+                      >
+                        Use listed price ({money(appliedIpo.ipo.listedPrice)})
+                      </button>
+                    )}
                 </div>
-              </form>
-            </div>
+              )}
+
+              <div className="flex items-center justify-end gap-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={closeModal}
+                  disabled={loading}
+                >
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleSave} disabled={!canSave}>
+                  {loading ? (
+                    <>
+                      <Spinner />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save"
+                  )}
+                </Button>
+              </div>
+            </form>
           </div>
-        </Modal>
-      </div>
-    </>
+        </div>
+      </Modal>
+    </div>
   );
 };
 

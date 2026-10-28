@@ -23,18 +23,20 @@ function SectionHeader({
   right?: React.ReactNode;
 }) {
   return (
-    <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-      <div className="flex items-center gap-2.5">
+    <div className="mb-4 flex min-w-0 flex-wrap items-end justify-between gap-2">
+      <div className="flex min-w-0 items-center gap-2.5">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">
           {title}
         </h2>
+
         {badge && (
-          <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-theme-xs font-semibold text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
+          <span className="shrink-0 rounded-full bg-brand-50 px-2.5 py-0.5 text-theme-xs font-semibold text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
             {badge}
           </span>
         )}
       </div>
-      {right}
+
+      {right && <div className="min-w-0 max-w-full">{right}</div>}
     </div>
   );
 }
@@ -43,6 +45,7 @@ export const Home = () => {
   const { ipos, loading, error, pagination, setPageNumber } = usePagination();
   const open = useOpenIpos();
   const upcoming = useUpcomingIpos();
+
   const { isAuthenticated, roles } = useSelector(
     (state: RootState) => state.auth
   );
@@ -55,35 +58,40 @@ export const Home = () => {
   const updatedAt = newestUpdate(openList);
 
   return (
-    <div className="space-y-10">
+    <div className="w-full min-w-0 max-w-full space-y-10">
       {/* Hero */}
-      <section className="relative overflow-hidden rounded-2xl bg-linear-to-br from-brand-600 via-brand-700 to-brand-900 p-6 text-white sm:p-8">
+      <section className="relative w-full min-w-0 overflow-hidden rounded-2xl bg-linear-to-br from-brand-600 via-brand-700 to-brand-900 p-4 text-white sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative max-w-2xl">
+
+        <div className="relative min-w-0 max-w-2xl">
           <p className="text-theme-xs font-semibold uppercase tracking-widest text-brand-100">
             VirtuStock • IPO simulator for India
           </p>
-          <h1 className="mt-2 text-title-sm font-semibold sm:text-title-md">
+
+          <h1 className="mt-2 break-words text-title-sm font-semibold sm:text-title-md">
             Pehle Samjho, Phir Invest Karo
           </h1>
+
           <p className="mt-3 text-sm text-brand-100 sm:text-base">
             Track GMP, subscription and verdicts for every IPO, and keep a
             record of the ones you apply to.
           </p>
 
-          <div className="mt-5 flex flex-wrap items-center gap-2.5">
+          <div className="mt-5 flex min-w-0 flex-wrap items-center gap-2.5">
             <Link
               to="/ipo/open"
               className="rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-brand-700 shadow-theme-xs transition hover:bg-brand-25"
             >
               Browse open IPOs
             </Link>
+
             <Link
               to="/ipo/compare"
               className="rounded-lg px-4 py-2.5 text-sm font-semibold text-white ring-1 ring-inset ring-white/40 transition hover:bg-white/10"
             >
               Compare IPOs
             </Link>
+
             <Link
               to={isAuthenticated ? dashboardPath : "/signin"}
               className="px-2 py-2.5 text-sm font-medium text-brand-100 underline-offset-4 hover:text-white hover:underline"
@@ -99,6 +107,7 @@ export const Home = () => {
                   {openList.length} open now
                 </span>
               )}
+
               {upcomingList.length > 0 && (
                 <span className="rounded-full bg-white/15 px-3 py-1">
                   {upcomingList.length} upcoming
@@ -110,13 +119,14 @@ export const Home = () => {
       </section>
 
       {/* Open IPOs */}
-      <section>
+      <section className="min-w-0">
         <SectionHeader
           title="Open now"
           badge={open.data ? String(openList.length) : undefined}
           right={
-            <div className="flex items-center gap-4">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
               <FreshnessLabel date={updatedAt} prefix="Data updated" />
+
               {openList.length > MAX_OPEN_ON_HOME && (
                 <Link
                   to="/ipo/open"
@@ -130,16 +140,17 @@ export const Home = () => {
         />
 
         {open.isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <IPOCardSkeleton />
             <IPOCardSkeleton />
             <IPOCardSkeleton />
           </div>
         ) : open.isError ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 p-8 text-center dark:border-gray-700">
+          <div className="rounded-2xl border border-dashed border-gray-300 p-6 text-center sm:p-8 dark:border-gray-700">
             <p className="text-sm text-gray-500 dark:text-gray-400">
               We couldn't load open IPOs right now.
             </p>
+
             <button
               type="button"
               onClick={() => open.refetch()}
@@ -149,37 +160,46 @@ export const Home = () => {
             </button>
           </div>
         ) : openList.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 p-8 text-center dark:border-gray-700">
+          <div className="rounded-2xl border border-dashed border-gray-300 p-6 text-center sm:p-8 dark:border-gray-700">
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
               No IPOs are open for bidding right now.
             </p>
+
             <p className="mt-1 text-theme-sm text-gray-500 dark:text-gray-400">
               Check upcoming and recent IPOs below.
             </p>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {openList.slice(0, MAX_OPEN_ON_HOME).map((ipo) => (
-              <IPOCard key={ipo.id} ipo={ipo} />
+              <div key={ipo.id} className="min-w-0">
+                <IPOCard ipo={ipo} />
+              </div>
             ))}
           </div>
         )}
       </section>
 
-      {/* Upcoming IPOs (only when the backend returns some) */}
+      {/* Upcoming IPOs */}
       {upcomingList.length > 0 && (
-        <section>
-          <SectionHeader title="Upcoming" badge={String(upcomingList.length)} />
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <section className="min-w-0">
+          <SectionHeader
+            title="Upcoming"
+            badge={String(upcomingList.length)}
+          />
+
+          <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {upcomingList.slice(0, 3).map((ipo) => (
-              <IPOCard key={ipo.id} ipo={ipo} />
+              <div key={ipo.id} className="min-w-0">
+                <IPOCard ipo={ipo} />
+              </div>
             ))}
           </div>
         </section>
       )}
 
       {/* All IPOs */}
-      <section>
+      <section className="min-w-0">
         <SectionHeader
           title="All IPOs"
           right={
@@ -191,7 +211,8 @@ export const Home = () => {
             </Link>
           }
         />
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+
+        <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
           {loading ? (
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -199,23 +220,26 @@ export const Home = () => {
               ))}
             </div>
           ) : ipos.length === 0 ? (
-            <p className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+            <p className="p-6 text-center text-sm text-gray-500 sm:p-8 dark:text-gray-400">
               No IPOs to show yet.
             </p>
           ) : (
-            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            <div className="min-w-0 divide-y divide-gray-100 dark:divide-gray-800">
               {ipos.map((ipo) => (
                 <IPORow key={ipo.id} ipo={ipo} />
               ))}
             </div>
           )}
-          <Pagination
-            pageNumber={pagination.pageNumber}
-            pageSize={pagination.pageSize}
-            totalPages={pagination.totalPages}
-            totalElements={pagination.totalElements}
-            onPageChange={setPageNumber}
-          />
+
+          <div className="min-w-0 overflow-x-auto">
+            <Pagination
+              pageNumber={pagination.pageNumber}
+              pageSize={pagination.pageSize}
+              totalPages={pagination.totalPages}
+              totalElements={pagination.totalElements}
+              onPageChange={setPageNumber}
+            />
+          </div>
         </div>
       </section>
     </div>

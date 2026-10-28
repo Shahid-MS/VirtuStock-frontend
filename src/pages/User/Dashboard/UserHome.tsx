@@ -1,23 +1,25 @@
 import AppliedIPOTable from "./AppliedIPOTable";
-
 import IPOAlloted from "./IPOAlloted";
 import MonthlyProfit from "./MonthlyProfit";
 
 export default function UserDashboard() {
   return (
-    <>
-      <div className="grid grid-cols-12 gap-4 md:gap-6">
-        <div className="col-span-12">
-          <IPOAlloted />
-        </div>
+    <div className="space-y-5 md:space-y-6">
+      {/* IPO Activity Overview */}
+      <section>
+        <IPOAlloted />
+      </section>
 
-        <div className=" col-span-12  md:col-span-6 md:order-2">
-          <MonthlyProfit />
-        </div>
-        <div className=" col-span-12  md:col-span-6 md:order-1">
+      {/* Portfolio Details */}
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6">
+        <div className="min-w-0">
           <AppliedIPOTable />
         </div>
+
+        <div className="min-w-0">
+          <MonthlyProfit />
+        </div>
       </div>
-    </>
+    </div>
   );
 }

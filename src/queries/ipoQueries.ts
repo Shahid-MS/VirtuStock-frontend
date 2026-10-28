@@ -12,7 +12,7 @@ const asList = (data: unknown): IPOInterface[] => {
 export const useOpenIpos = () =>
   useQuery({
     queryKey: ["ipos", "open"],
-    queryFn: async () => asList((await apiClient.get("/ipo?status=open")).data),
+    queryFn: async () => asList((await apiClient.get("/ipo/status?status=open")).data),
     staleTime: 2 * 60 * 1000,
   });
 
@@ -21,7 +21,7 @@ export const useUpcomingIpos = () =>
   useQuery({
     queryKey: ["ipos", "upcoming"],
     queryFn: async () => {
-      const res = await apiClient.get("/ipo", {
+      const res = await apiClient.get("/ipo/status", {
         params: { status: "upcoming" },
         skipErrorToast: true,
       });

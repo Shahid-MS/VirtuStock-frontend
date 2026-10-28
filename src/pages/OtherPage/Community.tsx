@@ -1,149 +1,143 @@
 const Community = () => {
-  const WHATSAPP_LINK = "https://chat.whatsapp.com/FlK8sMxzeg2E1PUYd5rbt1";
+  const WHATSAPP_LINK =
+    "https://chat.whatsapp.com/FlK8sMxzeg2E1PUYd5rbt1";
   const INSTAGRAM_URL = "https://www.instagram.com/virtustock.in";
   const YOUTUBE_LINK = "https://youtube.com/@virtustock";
+
+  const socials = [
+    {
+      name: "WhatsApp",
+      description: "Join our community",
+      href: WHATSAPP_LINK,
+      color: "text-green-600 dark:text-green-400",
+      bg: "bg-green-50 dark:bg-green-950/40",
+      border: "hover:border-green-500",
+      icon: (
+        <svg viewBox="0 0 32 32" className="h-7 w-7" fill="currentColor">
+          <path d="M16.04 2C8.84 2 3 7.84 3 15.04c0 2.66.74 5.14 2.03 7.26L3 30l7.9-2.06a13 13 0 0 0 5.14 1.03c7.2 0 13.04-5.84 13.04-13.04C29.08 8.84 23.24 2 16.04 2Zm0 23.78a10.7 10.7 0 0 1-4.98-1.24l-.36-.19-4.69 1.22 1.25-4.56-.23-.37a10.69 10.69 0 1 1 9.01 5.14Zm5.8-7.89c-.32-.16-1.89-.93-2.18-1.04-.29-.11-.5-.16-.71.16-.21.32-.82 1.04-1.01 1.25-.19.21-.37.24-.69.08-.32-.16-1.36-.5-2.59-1.6-.96-.85-1.6-1.9-1.79-2.22-.19-.32-.02-.5.14-.66.14-.14.32-.37.48-.56.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.56-.08-.16-.71-1.71-.97-2.35-.26-.63-.52-.55-.71-.56h-.61c-.21 0-.56.08-.85.4-.29.32-1.12 1.09-1.12 2.66s1.15 3.09 1.31 3.3c.16.21 2.27 3.46 5.49 4.86.77.33 1.37.53 1.84.68.77.24 1.47.21 2.02.13.62-.09 1.89-.77 2.16-1.51.27-.74.27-1.38.19-1.51-.08-.13-.29-.21-.61-.37Z" />
+        </svg>
+      ),
+    },
+    {
+      name: "Instagram",
+      description: "Follow our updates",
+      href: INSTAGRAM_URL,
+      color: "text-pink-600 dark:text-pink-400",
+      bg: "bg-pink-50 dark:bg-pink-950/40",
+      border: "hover:border-pink-500",
+      icon: (
+        <svg
+          viewBox="0 0 24 24"
+          className="h-7 w-7"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        >
+          <rect x="3" y="3" width="18" height="18" rx="5" />
+          <circle cx="12" cy="12" r="4" />
+          <circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
+        </svg>
+      ),
+    },
+    {
+      name: "YouTube",
+      description: "Watch our videos",
+      href: YOUTUBE_LINK,
+      color: "text-red-600 dark:text-red-400",
+      bg: "bg-red-50 dark:bg-red-950/40",
+      border: "hover:border-red-500",
+      icon: (
+        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor">
+          <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.6 3.6 12 3.6 12 3.6s-7.6 0-9.4.5A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.8.5 9.4.5 9.4.5s7.6 0 9.4-.5a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8ZM9.6 15.5v-7l6.1 3.5-6.1 3.5Z" />
+        </svg>
+      ),
+    },
+  ];
+
   return (
-    <>
-      <div className="rounded-xl border bg-white dark:bg-gray-900 p-6 shadow-sm">
-        <div className="flex flex-col xl:flex-row items-center xl:items-start gap-4 justify-betw">
-          {/* Left: Image */}
-          <div className="flex-shrink-0">
-            <img
-              src="/images/community/community.png"
-              alt="Community"
-              className=" w-75 h-50 lg:w-100 lg:h-75 object-contain"
-            />
+    <section className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow duration-300 hover:shadow-lg dark:border-gray-800 dark:bg-gray-900">
+      <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-yellow-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-blue-500/10 blur-3xl" />
+
+      <div className="relative grid grid-cols-1 items-center gap-6 p-5 sm:p-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-10">
+        <div className="flex items-center justify-center">
+          <img
+            src="/images/community/community.png"
+            alt="VirtuStock community"
+            className="h-44 w-full max-w-sm object-contain transition-transform duration-500 hover:scale-105 sm:h-56 lg:h-64"
+          />
+        </div>
+
+        <div className="space-y-5 text-center lg:text-left">
+          <div className="space-y-3">
+            <span className="inline-flex items-center gap-2 rounded-full border border-yellow-300 bg-yellow-50 px-3 py-1 text-xs font-semibold text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-300">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+              THE VIRTUSTOCK COMMUNITY
+            </span>
+
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
+              Learn. Connect. <span className="text-yellow-500">Grow.</span>
+            </h2>
+
+            <p className="mx-auto max-w-lg text-sm leading-6 text-gray-600 dark:text-gray-400 lg:mx-0">
+              Have questions or want to stay updated? Connect with fellow
+              investors, follow IPO updates, and learn about the stock market
+              with VirtuStock.
+            </p>
           </div>
 
-          {/* Right: Content */}
-          <div className="flex flex-col items-center xl:items-start text-center xl:text-left space-y-4">
-            <p className="text-gray-600 dark:text-gray-400 text-sm max-w-md">
-              Have questions or want to stay updated? Join our community and
-              connect with us on WhatsApp and Instagram.
-            </p>
-            <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-yellow-400 text-black font-bold select-none">
-              <span>Join Our Community</span>
+          <a
+            href={WHATSAPP_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group inline-flex items-center gap-3 rounded-full bg-yellow-400 px-5 py-3 font-semibold text-gray-950 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-yellow-300 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2"
+          >
+            Join Our Community
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 12h14m-7-7 7 7-7 7"
+              />
+            </svg>
+          </a>
 
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </div>
-
-            <div className="flex gap-4 p-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {socials.map((social) => (
               <a
-                href={WHATSAPP_LINK}
+                key={social.name}
+                href={social.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-14 w-14 items-center justify-center rounded-full border border-gray-300 bg-white shadow-theme-xs select-none dark:border-gray-700 dark:bg-gray-800"
+                aria-label={`${social.name}: ${social.description}`}
+                className={`group flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-gray-950 ${social.border}`}
               >
-                <svg
-                  width="28"
-                  height="28"
-                  viewBox="0 0 32 32"
-                  xmlns="http://www.w3.org/2000/svg"
+                <span
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110 ${social.bg} ${social.color}`}
                 >
-                  <defs>
-                    <linearGradient
-                      id="whatsappGradient"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="100%"
-                    >
-                      <stop offset="0%" stopColor="#25D366" />
-                      <stop offset="100%" stopColor="#128C7E" />
-                    </linearGradient>
-                  </defs>
+                  {social.icon}
+                </span>
 
-                  <path
-                    fill="url(#whatsappGradient)"
-                    d="M16.04 2.004C8.835 2.004 3 7.838 3 15.042c0 2.655.74 5.141 2.03 7.262L3 30l7.9-2.06a13.02 13.02 0 0 0 5.14 1.03c7.205 0 13.04-5.835 13.04-13.04 0-7.204-5.835-13.04-13.04-13.04Zm0 23.78a10.7 10.7 0 0 1-4.98-1.24l-.36-.19-4.69 1.22 1.25-4.56-.23-.37a10.69 10.69 0 1 1 9.01 5.14Zm5.8-7.89c-.32-.16-1.89-.93-2.18-1.04-.29-.11-.5-.16-.71.16-.21.32-.82 1.04-1.01 1.25-.19.21-.37.24-.69.08-.32-.16-1.36-.5-2.59-1.6-.96-.85-1.6-1.9-1.79-2.22-.19-.32-.02-.5.14-.66.14-.14.32-.37.48-.56.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.56-.08-.16-.71-1.71-.97-2.35-.26-.63-.52-.55-.71-.56-.19-.01-.4-.01-.61-.01-.21 0-.56.08-.85.4-.29.32-1.12 1.09-1.12 2.66s1.15 3.09 1.31 3.3c.16.21 2.27 3.46 5.49 4.86.77.33 1.37.53 1.84.68.77.24 1.47.21 2.02.13.62-.09 1.89-.77 2.16-1.51.27-.74.27-1.38.19-1.51-.08-.13-.29-.21-.61-.37Z"
-                  />
-                </svg>
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-gray-800 dark:text-gray-100">
+                    {social.name}
+                  </span>
+                  <span className="block text-xs text-gray-500 dark:text-gray-400">
+                    {social.description}
+                  </span>
+                </span>
               </a>
-
-              <a
-                href={INSTAGRAM_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-14 w-14 items-center justify-center rounded-full border border-gray-300 bg-white shadow-theme-xs select-none dark:border-gray-700 dark:bg-gray-800"
-              >
-                <svg
-                  width="38"
-                  height="38"
-                  viewBox="0 0 20 20"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <defs>
-                    <linearGradient
-                      id="instagramGradient"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="100%"
-                    >
-                      <stop offset="0%" stopColor="#feda75" />
-                      <stop offset="25%" stopColor="#fa7e1e" />
-                      <stop offset="50%" stopColor="#d62976" />
-                      <stop offset="75%" stopColor="#962fbf" />
-                      <stop offset="100%" stopColor="#4f5bd5" />
-                    </linearGradient>
-                  </defs>
-
-                  <path
-                    fill="url(#instagramGradient)"
-                    d="M10 1.8c2.3 0 2.6 0 3.5.05.85.04 1.31.18 1.62.3.42.16.72.36 1.04.68.32.32.52.62.68 1.04.12.31.26.77.3 1.62.05.9.05 1.2.05 3.5s0 2.6-.05 3.5c-.04.85-.18 1.31-.3 1.62-.16.42-.36.72-.68 1.04-.32.32-.62.52-1.04.68-.31.12-.77.26-1.62.3-.9.05-1.2.05-3.5.05s-2.6 0-3.5-.05c-.85-.04-1.31-.18-1.62-.3a2.73 2.73 0 0 1-1.04-.68 2.73 2.73 0 0 1-.68-1.04c-.12-.31-.26-.77-.3-1.62C1.8 12.6 1.8 12.3 1.8 10s0-2.6.05-3.5c.04-.85.18-1.31.3-1.62.16-.42.36-.72.68-1.04.32-.32.62-.52 1.04-.68.31-.12.77-.26 1.62-.3C7.4 1.8 7.7 1.8 10 1.8ZM10 6.5A3.5 3.5 0 1 0 10 13.5A3.5 3.5 0 0 0 10 6.5Zm0 5.8A2.3 2.3 0 1 1 10 7.7a2.3 2.3 0 0 1 0 4.6Zm3.65-6.2a.82.82 0 1 1 0-1.65.82.82 0 0 1 0 1.65Z"
-                  />
-                </svg>
-              </a>
-
-              <a
-                href={YOUTUBE_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-14 w-14 items-center justify-center rounded-full border border-gray-300 bg-white shadow-theme-xs select-none dark:border-gray-700 dark:bg-gray-800"
-              >
-                <svg
-                  width="38"
-                  height="38"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <defs>
-                    <linearGradient
-                      id="youtubeGradient"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="100%"
-                    >
-                      <stop offset="0%" stopColor="#ff4d4d" />
-                      <stop offset="100%" stopColor="#cc0000" />
-                    </linearGradient>
-                  </defs>
-
-                  <path
-                    fill="url(#youtubeGradient)"
-                    d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.6 3.6 12 3.6 12 3.6s-7.6 0-9.4.5A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.8.5 9.4.5 9.4.5s7.6 0 9.4-.5a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8ZM9.6 15.5v-7l6.1 3.5-6.1 3.5Z"
-                  />
-                </svg>
-              </a>
-            </div>
+            ))}
           </div>
         </div>
       </div>
-    </>
+    </section>
   );
 };
 
