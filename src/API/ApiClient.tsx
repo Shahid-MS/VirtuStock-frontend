@@ -1,5 +1,3 @@
-import { store } from "@/Store";
-
 import axios from "axios";
 import { toast } from "sonner";
 
@@ -17,8 +15,16 @@ const apiClient = axios.create({
   timeout: 15000,
 });
 
+// The auth store registers itself here (see Store/index.ts). Importing the
+// store directly would create a circular import: store -> authSlice -> ApiClient -> store.
+let getToken: () => string | null = () => null;
+
+export const setTokenGetter = (getter: () => string | null) => {
+  getToken = getter;
+};
+
 apiClient.interceptors.request.use((config) => {
-  const token = store.getState().auth.token;
+  const token = getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

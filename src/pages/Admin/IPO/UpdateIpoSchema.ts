@@ -2,8 +2,9 @@ import { z } from "zod";
 
 export const updateIpoSchema = z.object({
   issueSize: z.object({
-    fresh: z.string().min(2, "Fresh issue size is required"),
-    offerForSale: z.string().min(2, "Offer For Sale is required"),
+    // Optional: not every IPO has a fresh issue or an offer for sale.
+    fresh: z.string().nullish(),
+    offerForSale: z.string().nullish(),
     totalIssueSize: z.string().min(2, "Total issue size is required"),
   }),
 

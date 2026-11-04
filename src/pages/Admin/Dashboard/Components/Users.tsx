@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import Loading from "@/pages/OtherPage/Loading";
 import NotFound from "@/pages/OtherPage/NotFound";
 import Pagination from "@/Pagination/Pagination";
@@ -12,67 +10,29 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import {
-  QueryFunctionContext,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/API/ApiClient";
-import { useEffect, useState } from "react";
-import { UserInterface } from "@/Interface/IPO";
+import { useState } from "react";
 import { CheckCircleIcon, ErrorIcon, TrashBinIcon } from "@/icons";
 import { confirmDialog } from "primereact/confirmdialog";
 import { toast } from "sonner";
-import { AxiosError } from "axios";
-interface PaginationState {
-  pageNumber: number;
-  pageSize: number;
-  totalPages: number;
-  totalElements: number;
-  lastPage: boolean;
-}
+import { useAdminUsers } from "@/queries/adminQueries";
+import { queryKeys } from "@/queries/queryKeys";
+
+const PAGE_SIZE = 5;
+
 export const Users = () => {
-  const [users, setUsers] = useState<UserInterface[]>([]);
   const queryClient = useQueryClient();
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageNumber: 0,
-    pageSize: 5,
-    totalPages: 0,
-    totalElements: 0,
-    lastPage: false,
-  });
-  const fetchUsers = async ({ queryKey }: QueryFunctionContext) => {
-    const [, pageNumber, pageSize] = queryKey as [string, number, number];
-    const res = await apiClient.get("/admin/user", {
-      params: {
-        page: pageNumber,
-        size: pageSize,
-      },
-    });
-    return res.data;
-  };
+  const [pageNumber, setPageNumber] = useState(0);
 
-  const { data, isFetching } = useQuery({
-    queryKey: ["users", pagination.pageNumber, pagination.pageSize],
-    queryFn: fetchUsers,
-    placeholderData: (previousData) => previousData,
-    retry: 1,
-  });
+  const { data, isLoading } = useAdminUsers(pageNumber, PAGE_SIZE);
 
-  useEffect(() => {
-    if (!data) return;
-
-    setUsers(data.content ?? []);
-    setPagination((prev) => ({
-      ...prev,
-      totalPages: data.totalPages ?? 0,
-      totalElements: data.totalElements ?? 0,
-      lastPage: data.lastPage ?? false,
-    }));
-  }, [data]);
-
-  const setPageNumber = (p: number) => {
-    setPagination((prev) => ({ ...prev, pageNumber: p }));
+  const users = data?.content ?? [];
+  const pagination = {
+    pageNumber,
+    pageSize: PAGE_SIZE,
+    totalPages: data?.totalPages ?? 0,
+    totalElements: data?.totalElements ?? 0,
   };
 
   const handlePromoteAdmin = (
@@ -99,13 +59,10 @@ export const Users = () => {
           });
           toast.success(res.data.message);
           queryClient.invalidateQueries({
-            queryKey: ["users"],
+            queryKey: queryKeys.admin.usersAll,
           });
-        } catch (err) {
-          const error = err as AxiosError<any>;
-          if (error?.response?.data?.message) {
-            toast.error(error.response.data.message || "Failed to fetch");
-          }
+        } catch {
+          // The shared API client already showed the error toast.
         }
       },
     });
@@ -123,24 +80,22 @@ export const Users = () => {
         try {
           const res = await apiClient.delete(`/admin/user/${userId}`);
           toast.success(res.data.message);
+          queryClient.invalidateQueries({ queryKey: queryKeys.admin.count });
           if (users.length === 1 && pagination.pageNumber > 0) {
             setPageNumber(pagination.pageNumber - 1);
           } else {
             queryClient.invalidateQueries({
-              queryKey: ["users"],
+              queryKey: queryKeys.admin.usersAll,
             });
           }
-        } catch (err) {
-          const error = err as AxiosError<any>;
-          if (error?.response?.data?.message) {
-            toast.error(error.response.data.message || "Failed to fetch");
-          }
+        } catch {
+          // The shared API client already showed the error toast.
         }
       },
     });
   };
 
-  if (isFetching) return <Loading />;
+  if (isLoading) return <Loading />;
 
   if (!users.length) return <NotFound />;
   return (

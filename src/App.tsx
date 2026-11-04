@@ -1,6 +1,5 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router";
-import SignIn from "./pages/AuthPages/SignIn";
-import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
 
 import AppLayout from "./layout/AppLayout";
@@ -8,32 +7,37 @@ import { ScrollToTop } from "./components/common/ScrollToTop";
 
 import IPO from "./pages/IPO/IPO";
 import OpenIPOs from "./pages/IPO/OpenIPOs";
-import CompareIPO from "./pages/Comparison/CompareIPO";
 import GMPIPO from "./pages/GMP/GMPIPO";
 
-import UpdateIPO from "./pages/Admin/IPO/UpdateIpo";
 
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import PublicRoute from "./pages/AuthPages/PublicRoute";
-import ResetPassword from "./pages/AuthPages/ResetPassword";
 import { PaginationProvider } from "./Pagination/IpoPaginationContext";
 import { Home } from "./pages/Dashboard/Home";
 
-import UserProfile from "./pages/User/Profile/UserProfile";
-import UserDashboard from "./pages/User/Dashboard/UserHome";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./queryClient";
 import { Toaster } from "sonner";
-import AppliedIPO from "./pages/User/Dashboard/AppliedIPO/AppliedIPO";
 import "primereact/resources/themes/lara-light-blue/theme.css";
 import "primereact/resources/primereact.min.css";
 import { ConfirmDialog } from "primereact/confirmdialog";
 
-import AdminIpo from "./pages/Admin/Dashboard/AdminIpo";
-import AdminDashboard from "./pages/Admin/Dashboard/AdminDashboard";
-import AboutUs from "./pages/OtherPage/AboutUs";
-import Support from "./pages/OtherPage/Support";
 import { useAuthInit } from "./Store/authSlice";
+import Loading from "./pages/OtherPage/Loading";
+
+// Rarely-visited and chart-heavy pages load on demand to keep the first bundle small.
+const SignIn = lazy(() => import("./pages/AuthPages/SignIn"));
+const SignUp = lazy(() => import("./pages/AuthPages/SignUp"));
+const ResetPassword = lazy(() => import("./pages/AuthPages/ResetPassword"));
+const CompareIPO = lazy(() => import("./pages/Comparison/CompareIPO"));
+const UpdateIPO = lazy(() => import("./pages/Admin/IPO/UpdateIpo"));
+const UserProfile = lazy(() => import("./pages/User/Profile/UserProfile"));
+const UserDashboard = lazy(() => import("./pages/User/Dashboard/UserHome"));
+const AppliedIPO = lazy(() => import("./pages/User/Dashboard/AppliedIPO/AppliedIPO"));
+const AdminDashboard = lazy(() => import("./pages/Admin/Dashboard/AdminDashboard"));
+const AboutUs = lazy(() => import("./pages/OtherPage/AboutUs"));
+const Support = lazy(() => import("./pages/OtherPage/Support"));
+const AdminIpo = lazy(() => import("./pages/Admin/Dashboard/AdminIpo"));
 
 export default function App() {
   useAuthInit();
@@ -44,6 +48,7 @@ export default function App() {
       <Router>
         <ScrollToTop />
         <QueryClientProvider client={queryClient}>
+          <Suspense fallback={<Loading />}>
           <Routes>
             {/* Dashboard Layout */}
             <Route element={<AppLayout />}>
@@ -52,7 +57,7 @@ export default function App() {
                 index
                 path="/"
                 element={
-                  <PaginationProvider>
+                  <PaginationProvider storageKey="home-ipos">
                     <Home />
                   </PaginationProvider>
                 }
@@ -62,7 +67,7 @@ export default function App() {
                 <Route
                   path="compare"
                   element={
-                    <PaginationProvider>
+                    <PaginationProvider storageKey="compare-ipos">
                       <CompareIPO />
                     </PaginationProvider>
                   }
@@ -85,7 +90,7 @@ export default function App() {
                 <Route
                   path="ipo"
                   element={
-                    <PaginationProvider>
+                    <PaginationProvider storageKey="admin-ipos">
                       <AdminIpo />
                     </PaginationProvider>
                   }
@@ -139,6 +144,7 @@ export default function App() {
 
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </QueryClientProvider>
       </Router>
     </>

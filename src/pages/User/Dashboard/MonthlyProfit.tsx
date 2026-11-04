@@ -1,17 +1,10 @@
 import Chart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
-import { useCallback, useEffect, useState } from "react";
-import apiClient from "@/API/ApiClient";
-
-interface MonthlySummaryData {
-  month: string[];
-  profit: number[];
-}
-
-const emptySummary: MonthlySummaryData = {
-  month: [],
-  profit: [],
-};
+import { useState } from "react";
+import {
+  EMPTY_PROFIT_SUMMARY,
+  useMonthlyProfit,
+} from "@/queries/userQueries";
 
 const formatINR = (value: number) =>
   new Intl.NumberFormat("en-IN", {
@@ -42,36 +35,14 @@ const formatCompactINR = (value: number) => {
 export default function MonthlyProfit() {
   const currentYear = new Date().getFullYear();
 
-  const [monthlyProfit, setMonthlyProfit] =
-    useState<MonthlySummaryData>(emptySummary);
-
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  const fetchProfit = useCallback(async () => {
-    setLoading(true);
-    setError(false);
-
-    try {
-      const response = await apiClient.get(
-        `/user/monthly-summary-profit?year=${selectedYear}`
-      );
-
-      setMonthlyProfit(
-        response.data?.[`Year-${selectedYear}`] ?? emptySummary
-      );
-    } catch (err) {
-      console.error("Failed to fetch monthly profit/loss:", err);
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedYear]);
-
-  useEffect(() => {
-    void fetchProfit();
-  }, [fetchProfit]);
+  const {
+    data,
+    isLoading: loading,
+    isError: error,
+    refetch,
+  } = useMonthlyProfit(selectedYear);
+  const monthlyProfit = data ?? EMPTY_PROFIT_SUMMARY;
 
   const totalProfit = monthlyProfit.profit.reduce(
     (sum, value) => sum + value,
@@ -329,7 +300,7 @@ export default function MonthlyProfit() {
 
             <button
               type="button"
-              onClick={() => void fetchProfit()}
+              onClick={() => void refetch()}
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
             >
               Try again

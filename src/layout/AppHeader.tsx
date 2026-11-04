@@ -3,13 +3,30 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useSidebar } from "../context/SidebarContext";
 import { ThemeToggleButton } from "../components/common/ThemeToggleButton";
-// import NotificationDropdown from "../components/header/NotificationDropdown";
 import UserDropdown from "../components/header/UserDropdown";
 
-import { PaperPlaneIcon } from "../icons";
 import { useSelector } from "react-redux";
 import { RootState } from "@/Store";
 import Search from "./Search";
+
+// "Log in" glyph: an arrow entering a doorway.
+const LoginGlyph = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+    <path d="M10 17l5-5-5-5" />
+    <path d="M15 12H3" />
+  </svg>
+);
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
@@ -78,12 +95,12 @@ const AppHeader: React.FC = () => {
           <Link to="/" className="lg:hidden w-40 sm:w-48">
             <img
               className="dark:hidden"
-              src="/images/logo/logo-name.png"
+              src="/images/logo/logo-name.webp"
               alt="Logo"
             />
             <img
               className="hidden dark:block"
-              src="/images/logo/logo-name-dark.png"
+              src="/images/logo/logo-name-dark.webp"
               alt="Logo"
             />
           </Link>
@@ -118,11 +135,7 @@ const AppHeader: React.FC = () => {
           } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
           <div className="flex items-center gap-2 2xsm:gap-3">
-            {/* <!-- Dark Mode Toggler --> */}
             <ThemeToggleButton />
-            {/* <!-- Dark Mode Toggler --> */}
-            {/* <NotificationDropdown /> */}
-            {/* <!-- Notification Menu Area --> */}
           </div>
           {/* <!-- User Area --> */}
           {isAuthenticated ? (
@@ -130,9 +143,11 @@ const AppHeader: React.FC = () => {
           ) : (
             <button
               onClick={() => navigate("/signin")}
+              aria-label="Sign in"
+              title="Sign in"
               className="relative flex items-center justify-center text-gray-500 transition-colors bg-white border border-gray-200 rounded-full hover:text-dark-900 h-11 w-11 hover:bg-gray-100 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
             >
-              <PaperPlaneIcon />
+              <LoginGlyph />
             </button>
           )}
         </div>

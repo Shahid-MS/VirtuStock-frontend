@@ -5,7 +5,9 @@ import { dateFormat } from "@/Helper/dateHelper";
 import { INRFormat } from "@/Helper/INRHelper";
 import { useModal } from "@/hooks/useModal";
 import { AppliedIPOInterface } from "@/Interface/IPO";
-import { AxiosError } from "axios";
+import { useQueryClient } from "@tanstack/react-query";
+import { toastFallbackError } from "@/API/errors";
+import { invalidateUserActivity } from "@/queries/invalidate";
 import { Dispatch, SetStateAction, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -89,6 +91,7 @@ const AllotmentIPOdetail = ({
 }: AppliedIPODetailsInterface) => {
   const { isOpen, openModal, closeModal } = useModal();
   const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   const alloted = appliedIpo.allotedIpo;
   const currentSell: number | null = alloted.sellPrice ?? null;
@@ -150,6 +153,7 @@ const AllotmentIPOdetail = ({
         req
       );
       toast.success(res.data.message);
+      invalidateUserActivity(queryClient, appliedIpo.ipo.id);
       // The applied lot isn't touched here: only the allotted details changed.
       setAppliedIpo((prev) => {
         if (!prev) return prev;
@@ -162,13 +166,7 @@ const AllotmentIPOdetail = ({
       closeModal();
     } catch (error) {
       // Stay open so the change can be corrected and retried.
-      if (error instanceof AxiosError) {
-        toast.error(error.response?.data.message);
-      } else if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        console.log(error);
-      }
+      toastFallbackError(error, "Failed to update your allotment");
     } finally {
       setLoading(false);
     }

@@ -5,7 +5,9 @@ import { AllotmentStatus } from "@/Enum/AllotmentStatus";
 import { dateFormat } from "@/Helper/dateHelper";
 import { useModal } from "@/hooks/useModal";
 import { AppliedIPOInterface } from "@/Interface/IPO";
-import { AxiosError } from "axios";
+import { useQueryClient } from "@tanstack/react-query";
+import { toastFallbackError } from "@/API/errors";
+import { invalidateUserActivity } from "@/queries/invalidate";
 import { Dispatch, SetStateAction, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -46,6 +48,7 @@ const AppliedIPOdetail = ({
   const [lot, setLot] = useState<string>(String(appliedIpo.appliedLot));
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const allotmentEditable =
     appliedIpo.allotment !== AllotmentStatus.ALLOTMENT_PENDING;
@@ -90,6 +93,7 @@ const AppliedIPOdetail = ({
         req
       );
       toast.success(res.data.message);
+      invalidateUserActivity(queryClient, appliedIpo.ipo.id);
       setAppliedIpo((prev) => {
         if (!prev) return prev;
 
@@ -103,13 +107,7 @@ const AppliedIPOdetail = ({
       closeModal();
     } catch (error) {
       // Stay open so the change can be corrected and retried.
-      if (error instanceof AxiosError) {
-        toast.error(error.response?.data.message);
-      } else if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        console.log(error);
-      }
+      toastFallbackError(error, "Failed to update your application");
     } finally {
       setLoading(false);
     }
@@ -129,9 +127,11 @@ const AppliedIPOdetail = ({
             `/user/unmark-as-applied?ipoId=${appliedIpo.ipo.id}`
           );
           toast.success(res.data.message);
+          // Without this the IPO page keeps showing "applied" for minutes.
+          invalidateUserActivity(queryClient, appliedIpo.ipo.id);
           navigate(-1);
-        } catch (error) {
-          console.error("Error unmarking applied status:", error);
+        } catch {
+          // The shared API client already showed the error toast.
         }
       },
       reject: () => {},

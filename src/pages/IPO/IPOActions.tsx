@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useSelector } from "react-redux";
 import { useQueryClient } from "@tanstack/react-query";
-import { AxiosError } from "axios";
 import { toast } from "sonner";
 import { RootState } from "@/Store";
 import apiClient from "@/API/ApiClient";
+import { toastFallbackError } from "@/API/errors";
+import { queryKeys } from "@/queries/queryKeys";
 import { IPOInterface } from "@/Interface/IPO";
 import { useAppliedStatus } from "@/queries/ipoQueries";
 import { useModal } from "@/hooks/useModal";
@@ -44,20 +45,15 @@ export default function IPOActions({ ipo }: { ipo: IPOInterface }) {
         ipoId: ipo.id,
         appliedLot: Number(lot),
       });
-      queryClient.setQueryData(["applied-status", ipo.id], {
+      queryClient.setQueryData(queryKeys.appliedStatus.byIpo(ipo.id), {
         applied: true,
         appliedIpoId: res.data.appliedIpoId,
       });
-      queryClient.invalidateQueries({ queryKey: ["AppliedIpos"] });
+      // Dashboard list and monthly charts now include this application.
+      queryClient.invalidateQueries({ queryKey: queryKeys.user.all });
       toast.success(res.data.message);
     } catch (error) {
-      if (error instanceof AxiosError) {
-        if (error.response?.data?.message) {
-          toast.error(error.response.data.message);
-        }
-      } else if (error instanceof Error) {
-        toast.error(error.message);
-      }
+      toastFallbackError(error, "Could not save your application");
     } finally {
       setSaving(false);
       closeModal();

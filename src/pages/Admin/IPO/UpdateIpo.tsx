@@ -1,8 +1,7 @@
-import { queryClient } from "@/queryClient";
+import { useQueryClient } from "@tanstack/react-query";
 import NotFound from "../../OtherPage/NotFound";
 import { useParams } from "react-router";
-import { useEffect, useState } from "react";
-import { IPOInterface } from "../../../Interface/IPO";
+import { useEffect } from "react";
 import Loading from "../../OtherPage/Loading";
 import Button from "../../../components/ui/button/Button";
 import VerdictForm from "./Update IPO Form Elements/VerdictForm";
@@ -13,13 +12,17 @@ import { UpdateIpoFormInput, updateIpoSchema } from "./UpdateIpoSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { AxiosError } from "axios";
+import { toastFallbackError } from "@/API/errors";
 import { Verdict } from "@/Enum/Verdict";
+import { useIpoDetail } from "@/queries/ipoQueries";
+import { invalidateIpo } from "@/queries/invalidate";
 
 export default function UpdateIPO() {
   const { id } = useParams();
-  const [ipo, setIpo] = useState<IPOInterface>();
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  // Always start the form from the server's current values.
+  const { data: ipo, isLoading: loading } = useIpoDetail(id, { fresh: true });
 
   const {
     handleSubmit,
@@ -31,21 +34,6 @@ export default function UpdateIPO() {
   } = useForm<UpdateIpoFormInput>({
     resolver: zodResolver(updateIpoSchema),
   });
-
-  useEffect(() => {
-    const fetchIpo = async () => {
-      try {
-        const res = await apiClient.get(`/ipo/${id}`);
-        setIpo(res.data);
-      } catch {
-        setIpo(undefined);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchIpo();
-  }, [id]);
 
   useEffect(() => {
     if (ipo) {
@@ -63,36 +51,15 @@ export default function UpdateIPO() {
     };
 
     try {
-      const res = await apiClient.put(
-        `/admin/ipo/${ipo?.id}`,
-        changedData
-      );
+      const res = await apiClient.put(`/admin/ipo/${ipo?.id}`, changedData);
 
       toast.success(res.data.message);
 
-      queryClient.invalidateQueries({ queryKey: ["ipo"] });
-      queryClient.invalidateQueries({ queryKey: ["ipo-gmp"] });
-      queryClient.invalidateQueries({ queryKey: ["ipos"] });
-
-      setIpo((prev) =>
-        prev
-          ? {
-              ...prev,
-              verdict: data.verdict,
-              issueSize: data.issueSize,
-            }
-          : prev
-      );
+      // Only this IPO's caches and the lists need to refresh; the refetched
+      // detail also repopulates this form.
+      await invalidateIpo(queryClient, ipo?.id);
     } catch (error) {
-      if (error instanceof AxiosError) {
-        toast.error(
-          error.response?.data?.message || "Failed to update IPO"
-        );
-      } else if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Something went wrong");
-      }
+      toastFallbackError(error, "Failed to update IPO");
     }
   };
 

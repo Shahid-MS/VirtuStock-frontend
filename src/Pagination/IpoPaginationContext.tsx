@@ -3,13 +3,13 @@ import { IPOInterface } from "@/Interface/IPO";
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
-import {
-  useQuery,
-  QueryFunctionContext,
-} from "@tanstack/react-query";
+import { useNavigationType } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/queries/queryKeys";
 
 interface PaginationState {
   pageNumber: number;
@@ -118,25 +118,12 @@ const normalizeResponse = (
   return { content: [], totalPages: 0, totalElements: 0, lastPage: true };
 };
 
-const fetchIpos = async ({
-  queryKey,
-}: QueryFunctionContext): Promise<IpoPage> => {
-  const [
-    ,
-    pageNumber,
-    pageSize,
-    status,
-    verdict,
-    type,
-  ] = queryKey as [
-    string,
-    number,
-    number,
-    string,
-    string,
-    string
-  ];
-
+const fetchIpos = async (
+  pageNumber: number,
+  pageSize: number,
+  { status, verdict, type }: IpoFilters,
+  signal?: AbortSignal
+): Promise<IpoPage> => {
   const params: Record<string, string | number> = {
     page: pageNumber,
     size: pageSize,
@@ -156,23 +143,79 @@ const fetchIpos = async ({
 
   const response = await apiClient.get<unknown>("/ipo", {
     params,
+    signal,
   });
 
   return normalizeResponse(response.data, pageNumber, pageSize);
 };
 
+const EMPTY_FILTERS: IpoFilters = { status: "", verdict: "", type: "" };
+
+interface SavedListState {
+  pageNumber: number;
+  filters: IpoFilters;
+}
+
+const readSavedState = (storageKey: string): SavedListState | null => {
+  try {
+    const raw = sessionStorage.getItem(storageKey);
+    if (!raw) return null;
+
+    const saved = JSON.parse(raw) as Partial<SavedListState>;
+    const page = saved.pageNumber;
+
+    if (typeof page !== "number" || !Number.isInteger(page) || page < 0) {
+      return null;
+    }
+
+    return {
+      pageNumber: page,
+      filters: {
+        status: String(saved.filters?.status ?? ""),
+        verdict: String(saved.filters?.verdict ?? ""),
+        type: String(saved.filters?.type ?? ""),
+      },
+    };
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * @param storageKey Where this list remembers its page and filters for the
+ * browser session. Give each route its own key.
+ */
 export const PaginationProvider = ({
   children,
+  storageKey = "ipo-list",
 }: {
   children: React.ReactNode;
+  storageKey?: string;
 }) => {
-  const [pageNumber, setPageNumber] = useState(0);
+  // Coming back with the browser's Back/Forward button (e.g. from an IPO's
+  // detail page) restores the page and filters the user was on. A normal link
+  // click (PUSH), such as the logo, starts from page 1 as usual.
+  const navigationType = useNavigationType();
+  const [saved] = useState(() =>
+    navigationType === "POP" ? readSavedState(storageKey) : null
+  );
 
-  const [filters, setFiltersState] = useState<IpoFilters>({
-    status: "",
-    verdict: "",
-    type: "",
-  });
+  const [pageNumber, setPageNumber] = useState(saved?.pageNumber ?? 0);
+
+  const [filters, setFiltersState] = useState<IpoFilters>(
+    saved?.filters ?? EMPTY_FILTERS
+  );
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({ pageNumber, filters })
+      );
+    } catch {
+      // Storage unavailable (private mode / quota): paging still works.
+    }
+  }, [storageKey, pageNumber, filters]);
 
   // Changing a filter always goes back to the first page.
   const setFilters = (nextFilters: IpoFilters) => {
@@ -186,19 +229,16 @@ export const PaginationProvider = ({
     isLoading,
     isFetching,
   } = useQuery({
-    queryKey: [
-      "ipos",
+    queryKey: queryKeys.ipos.list(
       pageNumber,
       PAGE_SIZE,
       filters.status,
       filters.verdict,
-      filters.type,
-    ],
-    queryFn: fetchIpos,
+      filters.type
+    ),
+    queryFn: ({ signal }) => fetchIpos(pageNumber, PAGE_SIZE, filters, signal),
     placeholderData: (previousData) => previousData,
-    retry: 1,
     staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
   });
 
   const ipos = data?.content ?? [];

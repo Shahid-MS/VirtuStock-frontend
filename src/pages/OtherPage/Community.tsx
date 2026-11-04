@@ -62,7 +62,7 @@ const Community = () => {
       <div className="relative grid grid-cols-1 items-center gap-6 p-5 sm:p-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-10">
         <div className="flex items-center justify-center">
           <img
-            src="/images/community/community.png"
+            src="/images/community/community.webp"
             alt="VirtuStock community"
             className="h-44 w-full max-w-sm object-contain transition-transform duration-500 hover:scale-105 sm:h-56 lg:h-64"
           />

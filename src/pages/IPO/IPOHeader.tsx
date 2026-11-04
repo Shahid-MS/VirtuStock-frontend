@@ -17,6 +17,9 @@ import {
   totalSubscription,
 } from "@/Helper/ipoHelper";
 import IPOActions from "./IPOActions";
+import { Link, useLocation } from "react-router";
+import { useSelector } from "react-redux";
+import { RootState } from "@/Store";
 
 function KeyMetric({
   label,
@@ -42,13 +45,21 @@ export default function IPOHeader({
   ipo,
   gmp,
   showActions = true,
+  showAdminEdit = true,
 }: {
   ipo: IPOInterface;
   /** Latest GMP; defaults to the newest entry on the IPO itself. */
   gmp?: GMP | null;
   /** Hide Apply / Mark-as-applied buttons (e.g. on admin screens). */
   showActions?: boolean;
+  /** Show an Edit link to the admin edit page (admins only, never on /admin pages). */
+  showAdminEdit?: boolean;
 }) {
+  const isAdmin = useSelector((state: RootState) =>
+    state.auth.roles.includes("ROLE_ADMIN")
+  );
+  const { pathname } = useLocation();
+  const canEdit = showAdminEdit && isAdmin && !pathname.startsWith("/admin");
   const stats = gmpStats(ipo, gmp === undefined ? latestGmp(ipo.gmp) : gmp);
   const status = statusMeta(ipo.status);
   const timing = ipoTiming(ipo);
@@ -67,9 +78,34 @@ export default function IPOHeader({
               />
             </div>
             <div className="min-w-0">
-              <h1 className="text-xl font-semibold text-gray-800 dark:text-white/90 lg:text-2xl">
-                {ipo.name}
-              </h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-semibold text-gray-800 dark:text-white/90 lg:text-2xl">
+                  {ipo.name}
+                </h1>
+                {canEdit && (
+                  <Link
+                    to={`/admin/ipo/${ipo.id}`}
+                    title="Edit this IPO (admin)"
+                    aria-label="Edit this IPO"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-brand-200 bg-brand-50 text-brand-600 transition-colors hover:bg-brand-100 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-400 dark:hover:bg-brand-500/20"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
+                  </Link>
+                )}
+              </div>
               <p className="mt-0.5 text-sm uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 {[ipo.symbol, ipoTypeLabel(ipo.type)].filter(Boolean).join(" • ")}
               </p>

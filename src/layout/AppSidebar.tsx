@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router";
 import { useSelector } from "react-redux";
 import {
   BoltIcon,
@@ -101,14 +101,14 @@ const AppSidebar: React.FC = () => {
             <>
               <img
                 className="dark:hidden"
-                src="/images/logo/logo-name.png"
+                src="/images/logo/logo-name.webp"
                 alt="VirtuStock"
                 width={200}
                 height={50}
               />
               <img
                 className="hidden dark:block"
-                src="/images/logo/logo-name-dark.png"
+                src="/images/logo/logo-name-dark.webp"
                 alt="VirtuStock"
                 width={200}
                 height={50}

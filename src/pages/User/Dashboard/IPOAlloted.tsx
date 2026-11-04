@@ -1,54 +1,24 @@
 import Chart from "react-apexcharts";
 import type { ApexOptions } from "apexcharts";
-import { useCallback, useEffect, useState } from "react";
-import apiClient from "@/API/ApiClient";
+import { useState } from "react";
 import Loading from "@/pages/OtherPage/Loading";
-
-interface SummaryData {
-  month: string[];
-  applied: number[];
-  alloted: number[];
-  totalIpo: number[];
-}
-
-const emptySummary: SummaryData = {
-  month: [],
-  applied: [],
-  alloted: [],
-  totalIpo: [],
-};
+import {
+  EMPTY_ACTIVITY_SUMMARY,
+  useMonthlySummary,
+} from "@/queries/userQueries";
 
 export default function IPOAlloted() {
   const currentYear = new Date().getFullYear();
 
-  const [summary, setSummary] = useState<SummaryData>(emptySummary);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [selectedYear, setSelectedYear] = useState(currentYear);
-
-  const fetchSummary = useCallback(async () => {
-    setLoading(true);
-    setError(false);
-
-    try {
-      const response = await apiClient.get(
-        `/user/monthly-summary?year=${selectedYear}`
-      );
-
-      setSummary(
-        response.data?.[`Year-${selectedYear}`] ?? emptySummary
-      );
-    } catch (err) {
-      console.error("Failed to fetch IPO summary:", err);
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedYear]);
-
-  useEffect(() => {
-    void fetchSummary();
-  }, [fetchSummary]);
+  const {
+    data,
+    isLoading: loading,
+    isFetching: refreshing,
+    isError: error,
+    refetch,
+  } = useMonthlySummary(selectedYear);
+  const summary = data ?? EMPTY_ACTIVITY_SUMMARY;
 
   const totalApplied = summary.applied.reduce(
     (sum, value) => sum + value,
@@ -279,14 +249,14 @@ export default function IPOAlloted() {
 
           <button
             type="button"
-            onClick={() => void fetchSummary()}
-            disabled={loading}
+            onClick={() => void refetch()}
+            disabled={refreshing}
             aria-label="Refresh IPO activity"
             title="Refresh"
             className="rounded-lg border border-gray-200 p-2 text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/10"
           >
             <svg
-              className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+              className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -353,7 +323,7 @@ export default function IPOAlloted() {
 
             <button
               type="button"
-              onClick={() => void fetchSummary()}
+              onClick={() => void refetch()}
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
             >
               Try again

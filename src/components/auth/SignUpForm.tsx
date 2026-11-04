@@ -5,6 +5,7 @@ import { otpSchema, signUpSchema, SignUpSchemaType } from "./AuthSchema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import apiClient from "@/API/ApiClient";
+import { toastFallbackError } from "@/API/errors";
 import { AxiosError } from "axios";
 import { Link, useNavigate } from "react-router";
 import Button from "../ui/button/Button";
@@ -139,9 +140,7 @@ export default function SignUpForm() {
       setOtpGenerated(true);
       setCountdown(30);
     } catch (err) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const error = err as AxiosError<any>;
-      toast.error(error?.response?.data?.message || "Failed to send OTP");
+      toastFallbackError(err, "Failed to send OTP");
     } finally {
       setLoader((prev) => ({ ...prev, generateOtp: false }));
     }
@@ -167,9 +166,7 @@ export default function SignUpForm() {
         token: res.data.otpToken,
       });
     } catch (err) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const error = err as AxiosError<any>;
-      toast.error(error?.response?.data?.message || "Failed to verify OTP");
+      toastFallbackError(err, "Failed to verify OTP");
     } finally {
       setLoader((prev) => ({ ...prev, verifyOtp: false }));
     }

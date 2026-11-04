@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 
 import IPOHeader from "./IPOHeader";
+import IPOTimeline from "@/components/ipo/IPOTimeline";
 import IPOOverview from "./IPOOverview";
 import GMPSection from "./GMPSection";
 import StrengthRisks from "./StrengthRisks";
@@ -100,7 +101,9 @@ export default function IPO() {
 
   return (
     <div className="space-y-6">
-      <IPOHeader ipo={ipo} gmp={currentGmp} />
+      <IPOHeader ipo={ipo} gmp={currentGmp} showAdminEdit />
+
+      <IPOTimeline ipo={ipo} />
 
       {/* -----------------------------------------------------
           LISTING PERFORMANCE

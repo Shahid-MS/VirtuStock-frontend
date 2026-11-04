@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import apiClient from "@/API/ApiClient";
+import { queryKeys } from "@/queries/queryKeys";
 import ComponentCard from "@/components/common/ComponentCard";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
@@ -58,13 +59,13 @@ const RatingPage = () => {
     isError,
     refetch,
   } = useQuery<RatingInterface>({
-    queryKey: ["rating"],
+    queryKey: queryKeys.rating,
     queryFn: fetchRating,
     retry: 1,
   });
 
   const { data: myRate } = useQuery({
-    queryKey: ["my-rating"],
+    queryKey: queryKeys.myRating,
     queryFn: fetchMyRating,
     retry: false,
     enabled: isUser,
@@ -82,8 +83,8 @@ const RatingPage = () => {
       toast.success(data.message || "Thank you for your feedback!");
 
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["my-rating"] }),
-        queryClient.invalidateQueries({ queryKey: ["rating"] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.myRating }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.rating }),
       ]);
     },
     onError: (error: any) => {

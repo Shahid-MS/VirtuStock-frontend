@@ -87,7 +87,7 @@ const formatDate = (date?: string | null) => {
 
 function MiniStat({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-2 sm:gap-3">
+    <div className="flex items-center justify-between gap-1.5">
       <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
         {label}
       </span>
@@ -119,7 +119,7 @@ function SubscriptionMiniStats({
   };
 
   return (
-    <div className="flex min-w-[105px] flex-col gap-1.5 sm:min-w-[140px]">
+    <div className="flex min-w-[84px] flex-col gap-1 sm:min-w-[92px]">
       <MiniStat label="QIB" value={subscriptionValue(subscriptions?.QIB)} />
 
       <MiniStat
@@ -141,7 +141,7 @@ function IssueSizeMiniStats({
   issueSize: IPOInterface["issueSize"];
 }) {
   return (
-    <div className="flex min-w-[105px] flex-col gap-1.5 sm:min-w-[150px]">
+    <div className="flex min-w-[84px] flex-col gap-1 sm:min-w-[96px]">
       <MiniStat label="Fresh" value={rupees(issueSize?.fresh)} />
 
       <MiniStat label="OFS" value={rupees(issueSize?.offerForSale)} />
@@ -797,7 +797,7 @@ export default function CompareIPO() {
           dark:border-white/[0.05] dark:[--sticky-bg:#171f2e] dark:[--sticky-hover:#1c2432]"
       >
         <div className="no-scrollbar max-w-full overflow-x-auto overscroll-x-contain">
-          <Table className="min-w-[860px] sm:min-w-[1150px]">
+          <Table className="min-w-[760px] sm:min-w-[980px]">
             <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
               <TableRow>
                 <TableCell
@@ -815,7 +815,7 @@ export default function CompareIPO() {
                   Issue Price
                 </TableCell>
 
-                <TableCell isHeader className={`${head} text-center`}>
+                <TableCell isHeader className={`${headBase} px-1 text-center sm:px-1.5`}>
                   <button
                     type="button"
                     onClick={handleIssueSizeSort}
@@ -850,7 +850,7 @@ export default function CompareIPO() {
                   </button>
                 </TableCell>
 
-                <TableCell isHeader className={`${head} text-center`}>
+                <TableCell isHeader className={`${headBase} px-1 text-center sm:px-1.5`}>
                   <button
                     type="button"
                     onClick={handleSubscriptionSort}
@@ -951,13 +951,19 @@ export default function CompareIPO() {
 
                     {/* Issue Price */}
                     <TableCell className={`${cell} whitespace-nowrap`}>
-                      <span className="font-medium text-gray-700 dark:text-gray-200">
-                        {INRFormat(ipo.minPrice)} – {INRFormat(ipo.maxPrice)}
-                      </span>
+                      <div className="flex flex-col gap-0.5 text-xs">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">
+                          {INRFormat(ipo.minPrice)} –
+                        </span>
+
+                        <span className="font-medium text-gray-700 dark:text-gray-300">
+                          {INRFormat(ipo.maxPrice)}
+                        </span>
+                      </div>
                     </TableCell>
 
                     {/* Issue Size */}
-                    <TableCell className={`${cell} align-middle`}>
+                    <TableCell className={`${cell} px-1 align-middle sm:px-1.5`}>
                       <IssueSizeMiniStats issueSize={ipo.issueSize} />
                     </TableCell>
 
@@ -993,7 +999,7 @@ export default function CompareIPO() {
                     </TableCell>
 
                     {/* Subscription */}
-                    <TableCell className={`${cell} align-middle`}>
+                    <TableCell className={`${cell} px-1 align-middle sm:px-1.5`}>
                       <SubscriptionMiniStats
                         subscriptions={ipo.subscriptions}
                       />

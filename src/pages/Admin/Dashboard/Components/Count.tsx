@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import apiClient from "@/API/ApiClient";
 import Badge from "@/components/ui/badge/Badge";
 import {
@@ -8,47 +7,19 @@ import {
   GroupIcon,
   PieChartIcon,
 } from "@/icons";
-import Loading from "@/pages/OtherPage/Loading";
-import { AxiosError } from "axios";
-import { useEffect, useState } from "react";
+import { EMPTY_ADMIN_COUNT, useAdminCount } from "@/queries/adminQueries";
+import { invalidateIpoLists } from "@/queries/invalidate";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { toast } from "sonner";
 
-interface CountData {
-  totalUsers: number;
-  userPercentageGrowth: number;
-  totalIpos: number;
-  ipoPercentageGrowth: number;
-}
-
 export default function Count() {
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [hasFetched, setHasFetched] = useState(false);
-  const [count, setCount] = useState<CountData>({
-    totalUsers: 0,
-    userPercentageGrowth: 0,
-    totalIpos: 0,
-    ipoPercentageGrowth: 0,
-  });
 
-  useEffect(() => {
-    const fetchCount = async () => {
-      console.log("count");
-      try {
-        const res = await apiClient.get(`/admin/count`);
-        setCount(res.data);
-      } catch {
-        setCount({
-          totalUsers: 0,
-          userPercentageGrowth: 0,
-          totalIpos: 0,
-          ipoPercentageGrowth: 0,
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCount();
-  }, []);
+  // Shows zeros until loaded (or if the request fails), as before.
+  const { data } = useAdminCount();
+  const count = data ?? EMPTY_ADMIN_COUNT;
 
   const handleFetch = async () => {
     if (hasFetched) {
@@ -59,19 +30,14 @@ export default function Count() {
     try {
       const res = await apiClient.post(`/admin/ipo/fetch`);
       toast.success(res.data.message);
-    } catch (err) {
-      const error = err as AxiosError<any>;
-      if (error?.response?.data?.message) {
-        toast.error(error.response.data.message || "Failed to fetch");
-      }
+      // New IPOs were pulled in: refresh every list and the totals.
+      invalidateIpoLists(queryClient);
+    } catch {
+      // The shared API client already showed the error toast.
     } finally {
       setHasFetched(true);
     }
   };
-
-  if (loading) {
-    return <Loading />;
-  }
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6">

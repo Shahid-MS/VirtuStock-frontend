@@ -1,16 +1,29 @@
-import apiClient from "@/API/ApiClient";
 import { IPOInterface } from "@/Interface/IPO";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useIpoSearch } from "@/queries/ipoQueries";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
+
+const SEARCH_DEBOUNCE_MS = 400;
+const NO_RESULTS: IPOInterface[] = [];
 
 const Search = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const searchWrapperRef = useRef<HTMLDivElement>(null);
-  const [results, setResults] = useState<IPOInterface[]>([]);
-  const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Requests are debounced, cached per term and cancelled when superseded.
+  const term = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS);
+  const { data, isFetching: loading } = useIpoSearch(term);
+  const results = query.trim() ? data ?? NO_RESULTS : NO_RESULTS;
+
+  const reset = () => {
+    setQuery("");
+    setActiveIndex(-1);
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -18,7 +31,6 @@ const Search = () => {
         !searchWrapperRef.current.contains(event.target as Node)
       ) {
         setQuery("");
-        setResults([]);
         setActiveIndex(-1);
       }
     };
@@ -28,33 +40,6 @@ const Search = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
-  const searchIPO = async (value: string) => {
-    try {
-      setLoading(true);
-      const res = await apiClient.get(`/ipo/search`, {
-        params: { query: value },
-      });
-      setResults(res.data);
-    } catch (err) {
-      console.error("Search error", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      searchIPO(query);
-    }, 400);
-
-    return () => clearTimeout(timeout);
-  }, [query]);
 
   useEffect(() => {
     setActiveIndex(-1);
@@ -103,9 +88,7 @@ const Search = () => {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Escape") {
-                setQuery("");
-                setResults([]);
-                setActiveIndex(-1);
+                reset();
                 inputRef.current?.blur();
                 return;
               }
@@ -130,9 +113,7 @@ const Search = () => {
                 const selected =
                   activeIndex >= 0 ? results[activeIndex] : results[0];
                 navigate(`/ipo/${selected.id}`);
-                setResults([]);
-                setQuery("");
-                setActiveIndex(-1);
+                reset();
               }
             }}
             type="text"
@@ -169,10 +150,7 @@ const Search = () => {
               onMouseEnter={() => setActiveIndex(index)}
               onClick={() => {
                 navigate(`/ipo/${item.id}`);
-                setResults([]);
-                setQuery("");
-
-                setActiveIndex(-1);
+                reset();
               }}
             >
               <p className="font-medium dark:text-white/90">{item.name}</p>

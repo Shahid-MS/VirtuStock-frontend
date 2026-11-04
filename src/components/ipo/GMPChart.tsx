@@ -177,7 +177,6 @@ export default function GMPChart({ history }: GMPChartProps) {
     return segments;
   }, [plottedPoints, yMin, yMax]);
 
-  const firstPoint = plottedPoints[0];
   const lastPoint = plottedPoints[plottedPoints.length - 1];
 
   const selectedPoint =

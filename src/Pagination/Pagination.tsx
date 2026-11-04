@@ -79,9 +79,6 @@ const Pagination: React.FC<PaginationProps> = ({
               ></path>
             </svg>
           </button>
-          {/* <span className="block text-sm font-medium text-gray-700 sm:hidden dark:text-gray-400">
-            Page <span>{pageNumber + 1}</span> of <span>{totalPages}</span>
-          </span> */}
           <ul className="flex items-center gap-0.5 overflow-x-auto no-scrollbar">
             {getPageNumbers().map((page, index) => (
               <li key={index}>

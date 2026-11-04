@@ -5,6 +5,7 @@ import { ChevronLeftIcon } from "../../icons";
 import Button from "../ui/button/Button";
 
 import apiClient from "@/API/ApiClient";
+import { toastFallbackError } from "@/API/errors";
 import { AxiosError } from "axios";
 import {
   otpSchema,
@@ -117,9 +118,7 @@ export default function ResetPasswordForm() {
       setOtpGenerated(true);
       setCountdown(30);
     } catch (err) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const error = err as AxiosError<any>;
-      toast.error(error?.response?.data?.message || "Failed to send OTP");
+      toastFallbackError(err, "Failed to send OTP");
     } finally {
       setLoader((prev) => ({ ...prev, generateOtp: false }));
     }
@@ -145,9 +144,7 @@ export default function ResetPasswordForm() {
         token: res.data.otpToken,
       });
     } catch (err) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const error = err as AxiosError<any>;
-      toast.error(error?.response?.data?.message || "Failed to verify OTP");
+      toastFallbackError(err, "Failed to verify OTP");
     } finally {
       setLoader((prev) => ({ ...prev, verifyOtp: false }));
     }
