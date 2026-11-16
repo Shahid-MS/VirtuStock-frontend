@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Link } from "react-router";
 import {
   Table,
@@ -21,8 +20,8 @@ import { TrashBinIcon } from "@/icons";
 import { confirmDialog } from "primereact/confirmdialog";
 import apiClient from "@/API/ApiClient";
 import { toast } from "sonner";
-import { AxiosError } from "axios";
 import { useQueryClient } from "@tanstack/react-query";
+import { invalidateIpoLists } from "@/queries/invalidate";
 
 export const AdminIpo = () => {
   const { ipos, loading, error, pagination, setPageNumber } = usePagination();
@@ -40,16 +39,13 @@ export const AdminIpo = () => {
         try {
           const res = await apiClient.delete(`/admin/ipo/${ipoId}`);
           toast.success(res.data.message);
+          // Lists and the admin totals changed (also drops the stale page).
+          invalidateIpoLists(queryClient);
           if (ipos.length === 1 && pagination.pageNumber > 0) {
             setPageNumber(pagination.pageNumber - 1);
-          } else {
-            queryClient.invalidateQueries({ queryKey: ["ipos"] });
           }
-        } catch (err) {
-          const error = err as AxiosError<any>;
-          if (error?.response?.data?.message) {
-            toast.error(error.response.data.message || "Failed to fetch");
-          }
+        } catch {
+          // The shared API client already showed the error toast.
         }
       },
     });

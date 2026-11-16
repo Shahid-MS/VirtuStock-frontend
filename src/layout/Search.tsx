@@ -1,16 +1,29 @@
-import apiClient from "@/API/ApiClient";
 import { IPOInterface } from "@/Interface/IPO";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useIpoSearch } from "@/queries/ipoQueries";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
+
+const SEARCH_DEBOUNCE_MS = 400;
+const NO_RESULTS: IPOInterface[] = [];
 
 const Search = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const searchWrapperRef = useRef<HTMLDivElement>(null);
-  const [results, setResults] = useState<IPOInterface[]>([]);
-  const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Requests are debounced, cached per term and cancelled when superseded.
+  const term = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS);
+  const { data, isFetching: loading } = useIpoSearch(term);
+  const results = query.trim() ? data ?? NO_RESULTS : NO_RESULTS;
+
+  const reset = () => {
+    setQuery("");
+    setActiveIndex(-1);
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -18,7 +31,6 @@ const Search = () => {
         !searchWrapperRef.current.contains(event.target as Node)
       ) {
         setQuery("");
-        setResults([]);
         setActiveIndex(-1);
       }
     };
@@ -29,36 +41,26 @@ const Search = () => {
     };
   }, []);
 
-  const searchIPO = async (value: string) => {
-    try {
-      setLoading(true);
-      const res = await apiClient.get(`/ipo/search`, {
-        params: { query: value },
-      });
-      setResults(res.data);
-    } catch (err) {
-      console.error("Search error", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      searchIPO(query);
-    }, 400);
-
-    return () => clearTimeout(timeout);
-  }, [query]);
-
   useEffect(() => {
     setActiveIndex(-1);
   }, [results]);
+
+  // Ctrl/Cmd + K focuses the search box. Search is mounted twice (header and
+  // mobile sidebar), so only react when this instance is actually visible.
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        const input = inputRef.current;
+        if (input && input.offsetParent !== null) {
+          event.preventDefault();
+          input.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", handleShortcut);
+    return () => document.removeEventListener("keydown", handleShortcut);
+  }, []);
+
   return (
     <div ref={searchWrapperRef}>
       <form onSubmit={(e) => e.preventDefault()}>
@@ -85,6 +87,11 @@ const Search = () => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                reset();
+                inputRef.current?.blur();
+                return;
+              }
               if (!results.length) return;
 
               if (e.key === "ArrowDown") {
@@ -106,13 +113,11 @@ const Search = () => {
                 const selected =
                   activeIndex >= 0 ? results[activeIndex] : results[0];
                 navigate(`/ipo/${selected.id}`);
-                setResults([]);
-                setQuery("");
-                setActiveIndex(-1);
+                reset();
               }
             }}
             type="text"
-            placeholder="Stock"
+            placeholder="Search IPO by name or symbol"
             className="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 xl:w-[430px]"
           />
 
@@ -145,10 +150,7 @@ const Search = () => {
               onMouseEnter={() => setActiveIndex(index)}
               onClick={() => {
                 navigate(`/ipo/${item.id}`);
-                setResults([]);
-                setQuery("");
-
-                setActiveIndex(-1);
+                reset();
               }}
             >
               <p className="font-medium dark:text-white/90">{item.name}</p>

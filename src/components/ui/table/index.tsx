@@ -1,5 +1,4 @@
 import {
-  HTMLAttributes,
   ReactNode,
   TdHTMLAttributes,
   ThHTMLAttributes,
