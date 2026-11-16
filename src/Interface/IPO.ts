@@ -1,5 +1,5 @@
 export interface GMP {
-  gmp: string;
+  gmp: number;
   gmpDate: string;
   lastUpdated?: string;
 }
@@ -11,6 +11,27 @@ export interface issueSize {
 }
 
 type Subscriptions = Record<string, string>;
+
+export interface Registrar {
+  id?: number;
+  name?: string | null;
+  slug?: string | null;
+  /** Page where applicants check their allotment status. */
+  url?: string | null;
+  /** Logo image URL; initials are shown when missing or broken. */
+  logo?: string | null;
+}
+
+/** metric name -> value, e.g. { "Total Income": 2839.67 } */
+export type FinancialPeriod = Record<string, number | null>;
+
+export interface IPOFinancials {
+  id?: number;
+  /** ISO period-end date (e.g. "2026-03-31") -> metrics for that period. */
+  financials?: Record<string, FinancialPeriod> | null;
+  /** e.g. "Rs. Crore" */
+  unit?: string | null;
+}
 
 export interface IPOInterface {
   id: string;
@@ -33,9 +54,16 @@ export interface IPOInterface {
   gmp: GMP[];
   listedPrice: number;
   verdict: string;
+  /** Admin star rating, 1 to 5 (decimals allowed). Absent until set. */
+  rating?: number | null;
   listingReturn: number;
   listingReturnPercent: number;
   subscriptionLastUpdated: string;
+  registrar?: Registrar | null;
+  allotmentDate?: string | null;
+  financials?: IPOFinancials | null;
+  /** Optional: direct application link, if the backend provides one. */
+  applicationUrl?: string;
 }
 
 export interface IPOsProps {

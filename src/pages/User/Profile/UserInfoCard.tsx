@@ -8,7 +8,15 @@ import { UserInterface } from "@/Interface/IPO";
 import { userSchema, userSchemaType } from "./UserSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import apiClient from "@/API/ApiClient";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
@@ -16,13 +24,177 @@ import FileInput from "@/components/form/input/FileInput";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/Store";
 import { login } from "@/Store/authSlice";
+import type { EditableField, EditRequest } from "./UserMetaCard";
 
 interface UserMetaCardProps {
   user: UserInterface;
-  setUser: React.Dispatch<React.SetStateAction<UserInterface | undefined>>;
+  setUser: Dispatch<SetStateAction<UserInterface | undefined>>;
+  /** Set by the profile hero ("+ Phone") to open the editor on a field. */
+  editRequest?: EditRequest | null;
 }
 
-export default function UserInfoCard({ user, setUser }: UserMetaCardProps) {
+const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg"];
+const MAX_FILE_MB = 10;
+const FALLBACK_AVATAR = "/images/user/user.png";
+
+/* ---------- small pieces ---------- */
+
+function CopyButton({ value, label }: { value: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 1600);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+    } catch {
+      toast.error("Couldn't copy. Please copy it manually.");
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      aria-label={copied ? `${label} copied` : `Copy ${label}`}
+      className={`flex h-7 items-center gap-1 rounded-md px-1.5 text-xs transition focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-brand-500 ${
+        copied
+          ? "text-success-600 opacity-100 dark:text-success-400"
+          : "text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/[0.06] dark:hover:text-gray-200 lg:opacity-0 lg:group-hover/field:opacity-100"
+      }`}
+    >
+      {copied ? (
+        <>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m5 12 5 5 9-10" />
+          </svg>
+          Copied
+        </>
+      ) : (
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="9" y="9" width="11" height="11" rx="2" />
+          <path d="M5 15V6a2 2 0 0 1 2-2h9" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+const iconProps = {
+  width: 20,
+  height: 20,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.8,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  "aria-hidden": true,
+};
+
+const UserIcon = () => (
+  <svg {...iconProps}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
+  </svg>
+);
+const MailIcon = () => (
+  <svg {...iconProps}>
+    <rect x="3" y="5" width="18" height="14" rx="3" />
+    <path d="m4 7 8 6 8-6" />
+  </svg>
+);
+const PhoneIcon = () => (
+  <svg {...iconProps}>
+    <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z" />
+  </svg>
+);
+
+const IconTile = ({ children }: { children: React.ReactNode }) => (
+  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
+    {children}
+  </span>
+);
+
+interface InfoFieldProps {
+  icon: React.ReactNode;
+  label: string;
+  value?: string;
+  /** Form field to jump to when the value is empty (omit for read-only fields) */
+  field?: EditableField;
+  copyable?: boolean;
+  onAdd: (field: EditableField) => void;
+}
+
+function InfoField({ icon, label, value, field, copyable, onAdd }: InfoFieldProps) {
+  const base =
+    "group/field relative flex items-center gap-3 rounded-2xl border p-3.5 transition duration-200 motion-reduce:transition-none";
+
+  // Empty + editable: the whole tile is a shortcut to add it.
+  if (!value && field) {
+    return (
+      <button
+        type="button"
+        onClick={() => onAdd(field)}
+        className={`${base} border-dashed border-gray-300 text-left hover:border-brand-400 hover:bg-brand-25 focus-visible:outline-2 focus-visible:outline-brand-500 dark:border-gray-700 dark:hover:border-brand-500/60 dark:hover:bg-brand-500/5`}
+      >
+        <IconTile>{icon}</IconTile>
+        <span className="min-w-0 flex-1">
+          <span className="block text-xs text-gray-500 dark:text-gray-400">
+            {label}
+          </span>
+          <span className="block text-sm font-medium text-brand-500 dark:text-brand-400">
+            + Add {label.toLowerCase()}
+          </span>
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className={`${base} border-gray-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-theme-sm motion-reduce:hover:translate-y-0 dark:border-gray-800 dark:hover:border-brand-500/40`}
+    >
+      <IconTile>{icon}</IconTile>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+        <p className="break-words text-sm font-medium text-gray-800 dark:text-white/90">
+          {value || "—"}
+        </p>
+      </div>
+      {copyable && value && <CopyButton value={value} label={label.toLowerCase()} />}
+    </div>
+  );
+}
+
+/* ---------- main card ---------- */
+
+export default function UserInfoCard({ user, setUser, editRequest }: UserMetaCardProps) {
   const { isOpen, openModal, closeModal } = useModal();
   const initialValuesRef = useRef<{
     firstName: string | undefined;
@@ -35,7 +207,8 @@ export default function UserInfoCard({ user, setUser }: UserMetaCardProps) {
   const [loader, setLoader] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [profilePic, setProfilePic] = useState<File | null>(null);
-  const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg"];
+  const [fileInputKey, setFileInputKey] = useState(0);
+  const [focusField, setFocusField] = useState<EditableField | null>(null);
   const hasInitialized = useRef(false);
   const dispatch = useDispatch<AppDispatch>();
 
@@ -43,7 +216,9 @@ export default function UserInfoCard({ user, setUser }: UserMetaCardProps) {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    setFocus,
+    watch,
+    formState: { errors, isDirty },
   } = useForm<userSchemaType>({
     resolver: zodResolver(userSchema),
   });
@@ -63,6 +238,56 @@ export default function UserInfoCard({ user, setUser }: UserMetaCardProps) {
       hasInitialized.current = true;
     }
   }, [user, reset]);
+
+  // "+ Add phone" etc. opens the editor with that field focused.
+  useEffect(() => {
+    if (!isOpen || !focusField) return;
+    const timer = setTimeout(() => {
+      setFocus(focusField);
+      setFocusField(null);
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [isOpen, focusField, setFocus]);
+
+  // The profile hero's "+ Phone" / "+ Photo" chips ask for the editor to open.
+  useEffect(() => {
+    if (!editRequest) return;
+    setFocusField(editRequest.field ?? null);
+    openModal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editRequest]);
+
+  // Live preview of the photo the user just picked.
+  const previewUrl = useMemo(
+    () => (profilePic ? URL.createObjectURL(profilePic) : null),
+    [profilePic]
+  );
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  const phoneValue = watch("phone") ?? "";
+  const canSave = isDirty || profilePic !== null;
+
+  const openEdit = (field?: EditableField) => {
+    setFocusField(field ?? null);
+    openModal();
+  };
+
+  const clearPhoto = () => {
+    setProfilePic(null);
+    setFileInputKey((key) => key + 1); // remounts the file input to clear it
+  };
+
+  // Closing throws away unsaved edits, so the editor always reopens clean.
+  const handleClose = () => {
+    if (initialValuesRef.current) reset(initialValuesRef.current);
+    clearPhoto();
+    setServerError(null);
+    closeModal();
+  };
 
   const handleSave = async (values: userSchemaType) => {
     setLoader(true);
@@ -98,6 +323,13 @@ export default function UserInfoCard({ user, setUser }: UserMetaCardProps) {
       const refreshRes = await apiClient.post("/user/refresh-token");
       dispatch(login({ token: refreshRes.data["virtustock-token"] }));
       setUser((prev) => ({ ...prev, ...res.data.user }));
+
+      // The saved values become the new baseline for the next edit.
+      const nextInitial = { ...initial, ...changed };
+      initialValuesRef.current = nextInitial;
+      reset(nextInitial);
+      clearPhoto();
+
       toast.success(res.data.message);
       closeModal();
     } catch (err) {
@@ -112,7 +344,7 @@ export default function UserInfoCard({ user, setUser }: UserMetaCardProps) {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
 
     if (!file) {
@@ -124,8 +356,8 @@ export default function UserInfoCard({ user, setUser }: UserMetaCardProps) {
       e.target.value = "";
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("File size must be under 2MB");
+    if (file.size > MAX_FILE_MB * 1024 * 1024) {
+      toast.error(`File size must be under ${MAX_FILE_MB}MB`);
       e.target.value = "";
       return;
     }
@@ -133,63 +365,30 @@ export default function UserInfoCard({ user, setUser }: UserMetaCardProps) {
   };
 
   return (
-    <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h4 className="text-lg mb-2 font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
-            Personal Information
+    <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
+      <div className="mb-5 flex items-center justify-between gap-3 lg:mb-6">
+        <div className="min-w-0">
+          <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+            Account details
           </h4>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
-            <div>
-              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                First Name
-              </p>
-              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                {user.firstName}
-              </p>
-            </div>
-
-            <div>
-              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Last Name
-              </p>
-              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                {user.lastName}
-              </p>
-            </div>
-
-            <div>
-              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Email
-              </p>
-              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                {user.email}
-              </p>
-            </div>
-
-            <div>
-              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Phone
-              </p>
-              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                {user.phone}
-              </p>
-            </div>
-          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Your personal information on VirtuStock
+          </p>
         </div>
 
         <button
-          onClick={openModal}
-          className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
+          type="button"
+          onClick={() => openEdit()}
+          className="flex shrink-0 items-center justify-center gap-2 rounded-full bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 active:scale-[0.97] motion-reduce:transition-none"
         >
           <svg
             className="fill-current"
-            width="18"
-            height="18"
+            width="16"
+            height="16"
             viewBox="0 0 18 18"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
           >
             <path
               fillRule="evenodd"
@@ -198,20 +397,72 @@ export default function UserInfoCard({ user, setUser }: UserMetaCardProps) {
               fill=""
             />
           </svg>
-          Edit
+          <span className="max-sm:hidden">Edit profile</span>
+          <span className="sm:hidden">Edit</span>
         </button>
       </div>
 
-      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <InfoField icon={<UserIcon />} label="First name" value={user.firstName} field="firstName" onAdd={openEdit} />
+        <InfoField icon={<UserIcon />} label="Last name" value={user.lastName} field="lastName" onAdd={openEdit} />
+        <InfoField icon={<MailIcon />} label="Email" value={user.email} copyable onAdd={openEdit} />
+        <InfoField icon={<PhoneIcon />} label="Phone" value={user.phone} field="phone" copyable onAdd={openEdit} />
+      </div>
+
+      <Modal isOpen={isOpen} onClose={handleClose} className="max-w-[700px] m-4">
         <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <form onSubmit={handleSubmit(handleSave)} className="flex flex-col">
-            <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
+            <div className="custom-scrollbar max-h-[65vh] overflow-y-auto px-2 pb-3 lg:h-[450px] lg:max-h-none">
               <div className="mt-7">
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
                   Personal Information
                 </h5>
 
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+                  {/* Photo with live preview */}
+                  <div className="col-span-2">
+                    <Label>Profile Pic</Label>
+                    <div className="flex items-center gap-4">
+                      <img
+                        src={previewUrl ?? user.profilePicUrl ?? FALLBACK_AVATAR}
+                        alt="Profile preview"
+                        onError={(e) => {
+                          e.currentTarget.src = FALLBACK_AVATAR;
+                        }}
+                        className={`h-16 w-16 shrink-0 rounded-full border-2 object-cover transition ${
+                          previewUrl
+                            ? "border-brand-400"
+                            : "border-gray-200 dark:border-gray-700"
+                        }`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <FileInput
+                          key={fileInputKey}
+                          onChange={handleFileChange}
+                          className="custom-class"
+                        />
+                        {profilePic ? (
+                          <div className="mt-1.5 flex items-center justify-between gap-3 text-xs">
+                            <span className="truncate text-gray-500 dark:text-gray-400">
+                              {profilePic.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={clearPhoto}
+                              className="shrink-0 font-medium text-error-600 hover:underline dark:text-error-400"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="mt-1.5 text-xs text-gray-400 dark:text-gray-500">
+                            PNG or JPG, up to {MAX_FILE_MB}MB
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="col-span-2 lg:col-span-1">
                     <Label>First Name</Label>
                     <Input
@@ -231,7 +482,12 @@ export default function UserInfoCard({ user, setUser }: UserMetaCardProps) {
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>Phone</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>Phone</Label>
+                      <span className="mb-1.5 text-xs text-gray-400 dark:text-gray-500">
+                        {phoneValue.length}/10
+                      </span>
+                    </div>
                     <Input
                       maxLength={10}
                       {...register("phone", {
@@ -243,16 +499,10 @@ export default function UserInfoCard({ user, setUser }: UserMetaCardProps) {
                       hint={errors.phone?.message}
                     />
                   </div>
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Profile Pic</Label>
-                    <FileInput
-                      onChange={handleFileChange}
-                      className="custom-class"
-                    />
-                  </div>
                 </div>
+
                 <div>
-                  <h5 className="mt-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
+                  <h5 className="mt-6 mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
                     Social Links
                   </h5>
 
@@ -278,24 +528,39 @@ export default function UserInfoCard({ user, setUser }: UserMetaCardProps) {
                     </div>
                   </div>
                 </div>
+
                 {serverError && (
-                  <p className="text-error-500 text-sm mb-3 mt-3">
+                  <p
+                    role="alert"
+                    className="text-error-500 text-sm mb-3 mt-3"
+                  >
                     {serverError}
                   </p>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
+
+            <div className="mt-6 flex items-center gap-3 px-2 lg:justify-end">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={closeModal}
+                onClick={handleClose}
                 disabled={loader}
               >
-                Close
+                {canSave ? "Discard" : "Close"}
               </Button>
-              <Button size="sm" type="submit">
-                {loader ? "Updating..." : "Save Changes"}
+              <Button size="sm" type="submit" disabled={!canSave || loader}>
+                {loader ? (
+                  <>
+                    <span
+                      aria-hidden="true"
+                      className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+                    />
+                    Updating...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
               </Button>
             </div>
           </form>

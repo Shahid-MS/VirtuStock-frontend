@@ -22,9 +22,7 @@ const AppliedIPO = () => {
       } catch {
         // setAppliedIpo(undefined);
       } finally {
-        setTimeout(() => {
-          setLoading(false);
-        }, 250);
+        setLoading(false);
       }
     };
     fetchAppliedIpo();

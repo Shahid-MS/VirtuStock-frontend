@@ -1,5 +1,6 @@
 import Count from "./Components/Count";
 import Users from "./Components/Users";
+import Registrars from "./Components/Registrars";
 
 const AdminDashboard = () => {
   return (
@@ -11,6 +12,10 @@ const AdminDashboard = () => {
 
         <div className="col-span-12">
           <Users />
+        </div>
+
+        <div className="col-span-12">
+          <Registrars />
         </div>
       </div>
     </>

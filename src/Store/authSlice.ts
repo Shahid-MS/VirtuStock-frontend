@@ -37,12 +37,18 @@ export const useAuthInit = () => {
   useEffect(() => {
     const init = async () => {
       const token = localStorage.getItem("virtustock-token");
-      if (!token) return;
+      if (!token) {
+        // Logged-out visitor: nothing to restore, but protected routes must
+        // still be told that auth initialisation has finished.
+        dispatch(authInitialized());
+        return;
+      }
       try {
         const refreshRes = await apiClient.post("/user/refresh-token", null, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          skipErrorToast: true,
         });
         const newToken = refreshRes.data["virtustock-token"];
         dispatch(login({ token: newToken }));
