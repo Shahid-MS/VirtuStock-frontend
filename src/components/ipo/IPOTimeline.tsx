@@ -1,33 +1,10 @@
 import { IPOInterface } from "@/Interface/IPO";
 import { dateFormat } from "@/Helper/dateHelper";
+import { IPO_STAGES, ipoStageIndex } from "@/Helper/ipoStage";
 
 type StepState = "done" | "current" | "upcoming";
 
-const STEP_LABELS = ["Opens", "Bidding", "Allotment", "Listing", "Listed"];
-
-/** Index of the current step; STEP_LABELS.length means every step is done. */
-const currentStepIndex = (ipo: IPOInterface): number | null => {
-  const status = (ipo.status ?? "").toUpperCase();
-
-  if (status === "LISTED" || Number(ipo.listedPrice) > 0) {
-    return STEP_LABELS.length;
-  }
-
-  switch (status) {
-    case "UPCOMING":
-      return 0;
-    case "OPEN":
-      return 1;
-    case "CLOSED":
-    case "ALLOTMENT_PENDING":
-    case "ALLOTMENT":
-      return 2;
-    case "LISTING_PENDING":
-      return 3;
-    default:
-      return null;
-  }
-};
+const STEP_LABELS = IPO_STAGES;
 
 const day = (date?: string | null) => (date ? dateFormat(date) : "—");
 
@@ -39,9 +16,9 @@ const NODE_STYLES: Record<StepState, string> = {
     "border-gray-300 bg-white text-gray-400 dark:border-gray-700 dark:bg-[#171f2e]",
 };
 
-/** Where the IPO is in its life: opens, bidding, allotment, listing, listed. */
+/** Where the IPO is in its life: opens, bidding, allotment, demat transfer / refunds, listed. */
 export default function IPOTimeline({ ipo }: { ipo: IPOInterface }) {
-  const current = currentStepIndex(ipo);
+  const current = ipoStageIndex(ipo);
 
   // Unknown status: better to show nothing than a wrong timeline.
   if (current === null) return null;
@@ -52,8 +29,9 @@ export default function IPOTimeline({ ipo }: { ipo: IPOInterface }) {
     day(ipo.startDate),
     current > 1 ? `Closed ${day(ipo.endDate)}` : `Closes ${day(ipo.endDate)}`,
     current > 2 ? "Done" : current === 2 ? "Awaiting result" : "Result pending",
-    current > 3 ? day(ipo.listingDate) : `Lists ${day(ipo.listingDate)}`,
-    listed ? "Done" : "—",
+    // Shares are credited to demat / refunds start after allotment, before listing.
+    current > 3 ? "Done" : current === 3 ? "In progress" : "After allotment",
+    listed ? day(ipo.listingDate) : `Lists ${day(ipo.listingDate)}`,
   ];
 
   return (
@@ -107,7 +85,8 @@ export default function IPOTimeline({ ipo }: { ipo: IPOInterface }) {
               </span>
 
               <p className="mt-2 text-xs font-medium text-gray-800 dark:text-white/90 sm:text-sm">
-                {label}
+                {/* Zero-width space lets the long label wrap after the slash. */}
+                {label.replace("/", "/\u200b")}
               </p>
               <p className="mt-0.5 text-[11px] leading-snug text-gray-500 dark:text-gray-400 sm:text-xs">
                 {details[index]}

@@ -10,10 +10,14 @@ export const queryKeys = {
     all: ["ipos"] as const,
     open: ["ipos", "open"] as const,
     upcoming: ["ipos", "upcoming"] as const,
+    allotment: ["ipos", "allotment"] as const,
+    listed: ["ipos", "listed"] as const,
     list: (page: number, size: number, status: string, verdict: string, type: string) =>
       ["ipos", "list", page, size, status, verdict, type] as const,
   },
   ipo: {
+    /** Prefix covering every IPO detail (they embed the registrar). */
+    allDetails: ["ipo"] as const,
     detail: (id?: string) => ["ipo", id] as const,
     gmp: (id?: string) => ["ipo-gmp", id] as const,
   },
@@ -33,6 +37,9 @@ export const queryKeys = {
   admin: {
     count: ["admin", "count"] as const,
     usersAll: ["admin", "users"] as const,
+    registrars: (page: number, size: number) =>
+      ["admin", "registrars", page, size] as const,
+    registrarsAll: ["admin", "registrars"] as const,
     users: (page: number, size: number) => ["admin", "users", page, size] as const,
   },
   rating: ["rating"] as const,

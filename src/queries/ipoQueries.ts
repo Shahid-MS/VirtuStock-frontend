@@ -1,6 +1,8 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import apiClient from "@/API/ApiClient";
 import { IPOInterface } from "@/Interface/IPO";
+import { ALLOTMENT_STATUSES, allotmentWindow } from "@/Helper/ipoGroups";
+import { recentlyListed } from "@/Helper/ipoGroups";
 import { queryKeys } from "./queryKeys";
 
 const asList = (data: unknown): IPOInterface[] => {
@@ -101,4 +103,58 @@ export const useIpoSearch = (term: string) =>
     enabled: term.length > 0,
     placeholderData: keepPreviousData,
     staleTime: 60 * 1000,
+  });
+
+/**
+ * IPOs between bidding close and listing (closed, allotment, listing pending).
+ * The backend filters by one status at a time, so the statuses are fetched in
+ * parallel and merged; the query only fails if every request fails.
+ */
+export const useAllotmentIpos = () =>
+  useQuery({
+    queryKey: queryKeys.ipos.allotment,
+    queryFn: async ({ signal }) => {
+      const results = await Promise.allSettled(
+        ALLOTMENT_STATUSES.map((status) =>
+          apiClient.get("/ipo/status", {
+            params: { status: status.toLowerCase() },
+            skipErrorToast: true,
+            signal,
+          })
+        )
+      );
+
+      const fulfilled = results.filter(
+        (r): r is PromiseFulfilledResult<{ data: unknown }> =>
+          r.status === "fulfilled"
+      );
+
+      if (fulfilled.length === 0) {
+        throw (results[0] as PromiseRejectedResult).reason;
+      }
+
+      return fulfilled.flatMap((r) => asList(r.value.data));
+    },
+    select: (ipos) => allotmentWindow(ipos, new Date()),
+    retry: 1,
+    staleTime: 2 * 60 * 1000,
+  });
+
+/** The latest listings (with listing gain). Optional, so it fails quietly. */
+export const useRecentlyListed = () =>
+  useQuery({
+    queryKey: queryKeys.ipos.listed,
+    queryFn: async ({ signal }) =>
+      asList(
+        (
+          await apiClient.get("/ipo", {
+            params: { status: "LISTED", page: 0, size: 10 },
+            skipErrorToast: true,
+            signal,
+          })
+        ).data
+      ),
+    select: (ipos) => recentlyListed(ipos, 10),
+    retry: false,
+    staleTime: 5 * 60 * 1000,
   });

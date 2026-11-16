@@ -60,3 +60,19 @@ export const useMonthlyProfit = (year: number) =>
     },
     staleTime: USER_DATA_STALE_MS,
   });
+
+/** How many IPOs the signed-in user has applied to (one tiny request). */
+export const useAppliedCount = (enabled: boolean) =>
+  useQuery({
+    queryKey: queryKeys.user.appliedIpos(0, 1),
+    queryFn: async ({ signal }) => {
+      const res = await apiClient.get<Page<AppliedIPOInterface>>(
+        "/user/applied-ipo",
+        { params: { page: 0, size: 1 }, skipErrorToast: true, signal }
+      );
+      return res.data?.totalElements ?? res.data?.content?.length ?? 0;
+    },
+    enabled,
+    retry: false,
+    staleTime: USER_DATA_STALE_MS,
+  });

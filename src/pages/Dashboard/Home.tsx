@@ -1,61 +1,77 @@
+import { useMemo } from "react";
 import { Link } from "react-router";
 import { useSelector } from "react-redux";
 import { RootState } from "@/Store";
-import { usePagination } from "@/Pagination/IpoPaginationContext";
-import Pagination from "@/Pagination/Pagination";
-import { useOpenIpos, useUpcomingIpos } from "@/queries/ipoQueries";
+import {
+  useAllotmentIpos,
+  useOpenIpos,
+  useRecentlyListed,
+  useUpcomingIpos,
+} from "@/queries/ipoQueries";
+import { useAppliedCount } from "@/queries/userQueries";
 import { newestUpdate } from "@/Helper/ipoHelper";
+import {
+  averageListingGain,
+  dedupeById,
+  topByGmp,
+  topRated,
+  weekCalendar,
+} from "@/Helper/ipoGroups";
 import IPOCard from "@/components/ipo/IPOCard";
-import IPORow from "@/components/ipo/IPORow";
 import FreshnessLabel from "@/components/ipo/FreshnessLabel";
-import { IPOCardSkeleton, IPORowSkeleton } from "@/components/ipo/Skeleton";
-import InternalServerError from "../OtherPage/InternalServerError";
+import { IPOCardSkeleton } from "@/components/ipo/Skeleton";
+import SectionHeader, { SEE_ALL_LINK } from "@/components/home/SectionHeader";
+import HomeStats from "@/components/home/HomeStats";
+import TopLists from "@/components/home/TopLists";
+import QuickActions from "@/components/home/QuickActions";
+import WeekCalendar from "@/components/home/WeekCalendar";
+import RecentlyListedList from "@/components/home/RecentlyListedList";
+import AllotmentDue from "@/components/home/AllotmentDue";
+import YourIpos from "@/components/home/YourIpos";
+import HowItWorks from "@/components/home/HowItWorks";
+import IpoBasics from "@/components/home/IpoBasics";
 
 const MAX_OPEN_ON_HOME = 6;
-
-function SectionHeader({
-  title,
-  badge,
-  right,
-}: {
-  title: string;
-  badge?: string;
-  right?: React.ReactNode;
-}) {
-  return (
-    <div className="mb-4 flex min-w-0 flex-wrap items-end justify-between gap-2">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-          {title}
-        </h2>
-
-        {badge && (
-          <span className="shrink-0 rounded-full bg-brand-50 px-2.5 py-0.5 text-theme-xs font-semibold text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
-            {badge}
-          </span>
-        )}
-      </div>
-
-      {right && <div className="min-w-0 max-w-full">{right}</div>}
-    </div>
-  );
-}
+const MAX_ALLOTMENT_ON_HOME = 6;
+const MAX_LISTED_ON_HOME = 3;
 
 export const Home = () => {
-  const { ipos, loading, error, pagination, setPageNumber } = usePagination();
   const open = useOpenIpos();
   const upcoming = useUpcomingIpos();
+  const allotment = useAllotmentIpos();
+  const listed = useRecentlyListed();
 
   const { isAuthenticated, roles } = useSelector(
     (state: RootState) => state.auth
   );
-
-  if (error && !ipos.length) return <InternalServerError />;
+  const canTrack = isAuthenticated && roles.includes("ROLE_USER");
+  const applied = useAppliedCount(canTrack);
 
   const openList = open.data ?? [];
   const upcomingList = upcoming.data ?? [];
-  const dashboardPath = roles.includes("ROLE_ADMIN") ? "/admin" : "/user";
+  const allotmentList = allotment.data ?? [];
+  const listedList = listed.data ?? [];
+
+  // Admins also have ROLE_USER, and "my dashboard" means their own IPOs, so the
+  // user dashboard wins; the admin dashboard is reached from the sidebar.
+  const dashboardPath =
+    roles.includes("ROLE_ADMIN") && !roles.includes("ROLE_USER")
+      ? "/admin"
+      : "/user";
   const updatedAt = newestUpdate(openList);
+
+  const { gmpTop, ratedTop, week } = useMemo(() => {
+    // IPOs people can still act on: ranked by GMP and rating.
+    const live = dedupeById([...openList, ...upcomingList, ...allotmentList]);
+
+    return {
+      gmpTop: topByGmp(live, 3),
+      ratedTop: topRated(live, 3),
+      week: weekCalendar([...live, ...listedList], new Date()),
+    };
+  }, [openList, upcomingList, allotmentList, listedList]);
+
+  const weekHasEvents = week.some((day) => day.events.length > 0);
 
   return (
     <div className="w-full min-w-0 max-w-full space-y-10">
@@ -86,10 +102,10 @@ export const Home = () => {
             </Link>
 
             <Link
-              to="/ipo/compare"
+              to="/ipo/allotment"
               className="rounded-lg px-4 py-2.5 text-sm font-semibold text-white ring-1 ring-inset ring-white/40 transition hover:bg-white/10"
             >
-              Compare IPOs
+              Check allotment
             </Link>
 
             <Link
@@ -99,24 +115,26 @@ export const Home = () => {
               {isAuthenticated ? "My dashboard →" : "Sign in →"}
             </Link>
           </div>
-
-          {(open.data || upcomingList.length > 0) && (
-            <div className="mt-5 flex flex-wrap gap-2 text-theme-xs font-medium">
-              {open.data && (
-                <span className="rounded-full bg-white/15 px-3 py-1">
-                  {openList.length} open now
-                </span>
-              )}
-
-              {upcomingList.length > 0 && (
-                <span className="rounded-full bg-white/15 px-3 py-1">
-                  {upcomingList.length} upcoming
-                </span>
-              )}
-            </div>
-          )}
         </div>
       </section>
+
+      <HomeStats
+        open={open.data ? openList.length : undefined}
+        upcoming={upcoming.data ? upcomingList.length : undefined}
+        awaiting={allotment.data ? allotmentList.length : undefined}
+        averageGain={averageListingGain(listedList)}
+      />
+
+      <TopLists gmp={gmpTop} rated={ratedTop} />
+
+      <QuickActions />
+
+      {weekHasEvents && (
+        <section className="min-w-0">
+          <SectionHeader title="This week" />
+          <WeekCalendar days={week} />
+        </section>
+      )}
 
       {/* Open IPOs */}
       <section className="min-w-0">
@@ -198,49 +216,55 @@ export const Home = () => {
         </section>
       )}
 
-      {/* All IPOs */}
+      {/* Recently listed */}
+      {listedList.length > 0 && (
+        <section className="min-w-0">
+          <SectionHeader
+            title="Recently listed"
+            right={
+              <Link to="/ipo/all" className={SEE_ALL_LINK}>
+                See all →
+              </Link>
+            }
+          />
+          <RecentlyListedList ipos={listedList.slice(0, MAX_LISTED_ON_HOME)} />
+        </section>
+      )}
+
+      {/* Allotment due */}
+      {allotmentList.length > 0 && (
+        <section className="min-w-0">
+          <SectionHeader
+            title="Allotment due"
+            badge={String(allotmentList.length)}
+            right={
+              <Link to="/ipo/allotment" className={SEE_ALL_LINK}>
+                See all →
+              </Link>
+            }
+          />
+          <AllotmentDue ipos={allotmentList.slice(0, MAX_ALLOTMENT_ON_HOME)} />
+        </section>
+      )}
+
+      {/* Your IPOs */}
+      {canTrack && applied.data !== undefined && (
+        <section className="min-w-0">
+          <SectionHeader title="Your IPOs" />
+          <YourIpos count={applied.data} dashboardPath={dashboardPath} />
+        </section>
+      )}
+
+      {/* How it works */}
       <section className="min-w-0">
-        <SectionHeader
-          title="All IPOs"
-          right={
-            <Link
-              to="/ipo/compare"
-              className="text-theme-sm font-medium text-brand-500 hover:underline dark:text-brand-400"
-            >
-              Compare side by side →
-            </Link>
-          }
-        />
+        <SectionHeader title="How VirtuStock works" />
+        <HowItWorks signedIn={isAuthenticated} />
+      </section>
 
-        <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-          {loading ? (
-            <div className="divide-y divide-gray-100 dark:divide-gray-800">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <IPORowSkeleton key={i} />
-              ))}
-            </div>
-          ) : ipos.length === 0 ? (
-            <p className="p-6 text-center text-sm text-gray-500 sm:p-8 dark:text-gray-400">
-              No IPOs to show yet.
-            </p>
-          ) : (
-            <div className="min-w-0 divide-y divide-gray-100 dark:divide-gray-800">
-              {ipos.map((ipo) => (
-                <IPORow key={ipo.id} ipo={ipo} />
-              ))}
-            </div>
-          )}
-
-          <div className="min-w-0 overflow-x-auto">
-            <Pagination
-              pageNumber={pagination.pageNumber}
-              pageSize={pagination.pageSize}
-              totalPages={pagination.totalPages}
-              totalElements={pagination.totalElements}
-              onPageChange={setPageNumber}
-            />
-          </div>
-        </div>
+      {/* IPO basics */}
+      <section className="min-w-0">
+        <SectionHeader title="IPO basics" />
+        <IpoBasics />
       </section>
     </div>
   );

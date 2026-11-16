@@ -6,6 +6,8 @@ import IPOTimeline from "@/components/ipo/IPOTimeline";
 import IPOOverview from "./IPOOverview";
 import GMPSection from "./GMPSection";
 import StrengthRisks from "./StrengthRisks";
+import FinancialsSection from "./FinancialsSection";
+import AllotmentSection from "./AllotmentSection";
 import NotFound from "../OtherPage/NotFound";
 
 import SubscriptionBars from "@/components/ipo/SubscriptionBars";
@@ -18,8 +20,10 @@ import { INRFormat } from "@/Helper/INRHelper";
 
 const TABS = [
   { key: "overview", label: "Overview" },
+  { key: "financials", label: "Financials" },
   { key: "gmp", label: "GMP" },
   { key: "subscription", label: "Subscription" },
+  { key: "allotment", label: "Allotment" },
   { key: "risks", label: "Strengths & Risks" },
 ] as const;
 
@@ -213,6 +217,9 @@ export default function IPO() {
           {/* Overview */}
           {tab === "overview" && <IPOOverview ipo={ipo} />}
 
+          {/* Financials */}
+          {tab === "financials" && <FinancialsSection data={ipo.financials} />}
+
           {/* GMP */}
           {tab === "gmp" && (
             <GMPSection
@@ -240,6 +247,9 @@ export default function IPO() {
               />
             </div>
           )}
+
+          {/* Allotment */}
+          {tab === "allotment" && <AllotmentSection ipo={ipo} />}
 
           {/* Strengths & Risks */}
           {tab === "risks" && <StrengthRisks ipo={ipo} />}

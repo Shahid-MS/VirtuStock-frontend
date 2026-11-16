@@ -4,6 +4,7 @@ import { newestUpdate } from "@/Helper/ipoHelper";
 import IPOCard from "@/components/ipo/IPOCard";
 import FreshnessLabel from "@/components/ipo/FreshnessLabel";
 import { IPOCardSkeleton } from "@/components/ipo/Skeleton";
+import TypeSections from "@/components/ipo/TypeSections";
 
 export default function OpenIPOs() {
   const { data, isLoading, isError, refetch } = useOpenIpos();
@@ -48,18 +49,25 @@ export default function OpenIPOs() {
             No IPOs are open for bidding right now.
           </p>
           <Link
-            to="/"
+            to="/ipo/all"
             className="mt-2 inline-block text-theme-sm font-medium text-brand-500 hover:underline dark:text-brand-400"
           >
             Browse all IPOs →
           </Link>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {ipos.map((ipo) => (
-            <IPOCard key={ipo.id} ipo={ipo} />
-          ))}
-        </div>
+        <TypeSections
+          ipos={ipos}
+          emptyMessage={(type) => `No ${type} IPOs are open right now.`}
+        >
+          {(list) => (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {list.map((ipo) => (
+                <IPOCard key={ipo.id} ipo={ipo} />
+              ))}
+            </div>
+          )}
+        </TypeSections>
       )}
     </div>
   );

@@ -159,7 +159,7 @@ export const ipoTypeLabel = (type?: string | null): string => {
 /* ---------- dates ---------- */
 
 /** Parses "YYYY-MM-DD" as a local calendar day (avoids timezone shifts). */
-const parseDay = (d?: string | number | Date | null): Date | null => {
+export const parseDay = (d?: string | number | Date | null): Date | null => {
   if (d === undefined || d === null || d === "") return null;
   if (typeof d === "string") {
     const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d);

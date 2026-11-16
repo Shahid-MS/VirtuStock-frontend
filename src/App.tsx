@@ -38,6 +38,8 @@ const AdminDashboard = lazy(() => import("./pages/Admin/Dashboard/AdminDashboard
 const AboutUs = lazy(() => import("./pages/OtherPage/AboutUs"));
 const Support = lazy(() => import("./pages/OtherPage/Support"));
 const AdminIpo = lazy(() => import("./pages/Admin/Dashboard/AdminIpo"));
+const AllIPOs = lazy(() => import("./pages/IPO/AllIPOs"));
+const AllotmentPage = lazy(() => import("./pages/IPO/AllotmentPage"));
 
 export default function App() {
   useAuthInit();
@@ -56,11 +58,7 @@ export default function App() {
               <Route
                 index
                 path="/"
-                element={
-                  <PaginationProvider storageKey="home-ipos">
-                    <Home />
-                  </PaginationProvider>
-                }
+                element={<Home />}
               />
 
               <Route path="/ipo">
@@ -73,6 +71,15 @@ export default function App() {
                   }
                 />
                 <Route path="open" element={<OpenIPOs />} />
+                <Route path="allotment" element={<AllotmentPage />} />
+                <Route
+                  path="all"
+                  element={
+                    <PaginationProvider storageKey="all-ipos">
+                      <AllIPOs />
+                    </PaginationProvider>
+                  }
+                />
                 <Route path=":id" element={<IPO />} />
                 <Route path="gmp/:id" element={<GMPIPO />} />
               </Route>

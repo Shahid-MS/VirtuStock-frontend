@@ -1,6 +1,19 @@
 import { isAxiosError } from "axios";
 import { toast } from "sonner";
 
+/** The server's `message` for a failed request, or the error's own message. */
+export const getApiErrorMessage = (error: unknown): string | undefined => {
+  if (isAxiosError<{ message?: string }>(error)) {
+    return (
+      error.response?.data?.message ??
+      (error.response
+        ? `Request failed (${error.response.status})`
+        : "Could not reach the server")
+    );
+  }
+  return error instanceof Error ? error.message : undefined;
+};
+
 /**
  * The shared axios client (ApiClient.tsx) already shows a toast for any server
  * `message` and for network failures. Call this from a `catch` block to add a

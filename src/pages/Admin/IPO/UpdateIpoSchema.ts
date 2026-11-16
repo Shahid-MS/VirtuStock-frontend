@@ -9,6 +9,10 @@ export const updateIpoSchema = z.object({
   }),
 
   verdict: z.enum(["STRONG_BUY", "BUY", "WAIT", "AVOID", "NOT_REVIEWED"]),
+
+  // 1 to 5 stars, decimals allowed (BigDecimal on the backend). Optional so
+  // IPOs without a rating can still be saved.
+  rating: z.number().min(1).max(5).nullish(),
 });
 
 export type UpdateIpoFormInput = z.input<typeof updateIpoSchema>;

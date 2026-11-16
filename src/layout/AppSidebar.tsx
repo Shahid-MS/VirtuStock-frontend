@@ -9,17 +9,22 @@ import {
   ListIcon,
   PencilIcon,
   PieChartIcon,
+  ShieldCheckIcon,
+  TableIcon,
   UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import { RootState } from "@/Store";
 import Search from "./Search";
+import { useAllotmentIpos } from "@/queries/ipoQueries";
 
 type NavItem = {
   name: string;
   icon: React.ReactNode;
   path: string;
 };
+
+const ALLOTMENT_PATH = "/ipo/allotment";
 
 type NavSection = {
   title: string;
@@ -31,7 +36,9 @@ const MARKET: NavSection = {
   items: [
     { name: "Overview", icon: <GridIcon />, path: "/" },
     { name: "Open IPOs", icon: <BoltIcon />, path: "/ipo/open" },
+    { name: "Allotment", icon: <ShieldCheckIcon />, path: ALLOTMENT_PATH },
     { name: "Compare IPOs", icon: <ListIcon />, path: "/ipo/compare" },
+    { name: "All IPOs", icon: <TableIcon />, path: "/ipo/all" },
   ],
 };
 
@@ -63,6 +70,9 @@ const AppSidebar: React.FC = () => {
   const roles = useSelector((state: RootState) => state.auth.roles);
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
+
+  // Shared, cached query: also used by the Allotment page and the home page.
+  const allotmentCount = useAllotmentIpos().data?.length ?? 0;
 
   const showLabels = isExpanded || isHovered || isMobileOpen;
   const collapsed = !isExpanded && !isHovered;
@@ -169,6 +179,16 @@ const AppSidebar: React.FC = () => {
                       {showLabels && (
                         <span className="menu-item-text">{item.name}</span>
                       )}
+                      {showLabels &&
+                        item.path === ALLOTMENT_PATH &&
+                        allotmentCount > 0 && (
+                          <span
+                            className="ml-auto rounded-full bg-brand-500 px-2 py-0.5 text-[11px] font-semibold leading-none text-white"
+                            aria-label={`${allotmentCount} IPOs closed and yet to list`}
+                          >
+                            {allotmentCount}
+                          </span>
+                        )}
                     </Link>
                   </li>
                 ))}

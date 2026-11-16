@@ -1,4 +1,5 @@
 import Badge from "@/components/ui/badge/Badge";
+import IPORating from "@/components/ipo/IPORating";
 import IPOVerdict from "@/components/ipo/IPOVerdict";
 import FreshnessLabel from "@/components/ipo/FreshnessLabel";
 import { GMP, IPOInterface } from "@/Interface/IPO";
@@ -109,6 +110,7 @@ export default function IPOHeader({
               <p className="mt-0.5 text-sm uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 {[ipo.symbol, ipoTypeLabel(ipo.type)].filter(Boolean).join(" • ")}
               </p>
+              <IPORating rating={ipo.rating} className="mt-1.5" />
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <IPOVerdict verdict={ipo.verdict} size="md" />
                 <Badge size="md" color={status.color}>

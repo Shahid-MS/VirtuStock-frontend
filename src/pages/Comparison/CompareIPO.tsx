@@ -10,6 +10,7 @@ import {
 } from "../../components/ui/table";
 
 import IPOVerdict from "@/components/ipo/IPOVerdict";
+import RegistrarBadge from "@/components/ipo/RegistrarBadge";
 import { IPOCardSkeleton } from "@/components/ipo/Skeleton";
 import { INRFormat } from "../../Helper/INRHelper";
 
@@ -797,7 +798,7 @@ export default function CompareIPO() {
           dark:border-white/[0.05] dark:[--sticky-bg:#171f2e] dark:[--sticky-hover:#1c2432]"
       >
         <div className="no-scrollbar max-w-full overflow-x-auto overscroll-x-contain">
-          <Table className="min-w-[760px] sm:min-w-[980px]">
+          <Table className="min-w-[860px] sm:min-w-[1080px]">
             <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
               <TableRow>
                 <TableCell
@@ -868,6 +869,10 @@ export default function CompareIPO() {
                       direction={sortDirection}
                     />
                   </button>
+                </TableCell>
+
+                <TableCell isHeader className={`${head} whitespace-nowrap`}>
+                  Registrar
                 </TableCell>
 
                 <TableCell
@@ -1003,6 +1008,11 @@ export default function CompareIPO() {
                       <SubscriptionMiniStats
                         subscriptions={ipo.subscriptions}
                       />
+                    </TableCell>
+
+                    {/* Registrar */}
+                    <TableCell className={`${cell} align-middle`}>
+                      <RegistrarBadge registrar={ipo.registrar} />
                     </TableCell>
 
                     {/* Lot */}

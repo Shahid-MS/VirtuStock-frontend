@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import apiClient from "@/API/ApiClient";
 import { UserInterface } from "@/Interface/IPO";
+import { toRegistrarPage } from "@/Helper/registrarPage";
 import { Page } from "@/Interface/Page";
 import { AdminCount } from "@/Interface/Summary";
 import { queryKeys } from "./queryKeys";
@@ -32,5 +33,22 @@ export const useAdminUsers = (page: number, size: number) =>
       ).data,
     placeholderData: (previous) => previous,
     // Promote / delete invalidate this list, so a short cache is safe.
+    staleTime: 5 * 60 * 1000,
+  });
+
+export const useAdminRegistrars = (page: number, size: number) =>
+  useQuery({
+    queryKey: queryKeys.admin.registrars(page, size),
+    queryFn: async ({ signal }) =>
+      toRegistrarPage(
+        (
+          await apiClient.get<unknown>("/admin/registrar", {
+            params: { page, size },
+            signal,
+          })
+        ).data
+      ),
+    placeholderData: (previous) => previous,
+    // Updating a logo invalidates this list, so a short cache is safe.
     staleTime: 5 * 60 * 1000,
   });
